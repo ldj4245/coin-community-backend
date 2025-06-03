@@ -5,9 +5,6 @@ import com.coincommunity.backend.dto.CoinPriceDto;
 import com.coincommunity.backend.service.CoinPriceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -36,12 +33,14 @@ public class CoinPriceController {
         description = "현재 지원하는 모든 코인들의 가격 정보를 제공합니다.",
         tags = {"코인 가격"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping
-    public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getAllCoinPrices() {
+    public ResponseEntity<ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getAllCoinPrices() {
         List<CoinPriceDto.CoinPriceResponse> coinPrices = coinPriceService.getAllCoinPrices();
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(coinPrices));
+        return ResponseEntity.ok(ApiResponse.success(coinPrices));
     }
 
     /**
@@ -52,16 +51,19 @@ public class CoinPriceController {
         description = "특정 코인의 가격 정보를 조회합니다. 거래소는 기본적으로 UPBIT를 사용합니다.",
         tags = {"코인 가격"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코인을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/{coinId}")
-    public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<CoinPriceDto.CoinPriceResponse>> getCoinPrice(
+    public ResponseEntity<ApiResponse<CoinPriceDto.CoinPriceResponse>> getCoinPrice(
             @Parameter(description = "코인 ID(심볼)") @PathVariable String coinId,
             @Parameter(description = "거래소명 (기본값: UPBIT)") @RequestParam(required = false, defaultValue = "UPBIT") String exchange) {
         
         CoinPriceDto.CoinPriceResponse coinPrice = 
                 coinPriceService.getCoinPriceByExchange(coinId, exchange);
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(coinPrice));
+        return ResponseEntity.ok(ApiResponse.success(coinPrice));
     }
 
     /**
@@ -72,15 +74,18 @@ public class CoinPriceController {
         description = "특정 거래소(예: UPBIT, BINANCE)에서 처리하는 모든 코인의 가격 정보를 조회합니다.",
         tags = {"코인 가격"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "거래소를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/exchange/{exchange}")
-    public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getCoinPricesByExchange(
+    public ResponseEntity<ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getCoinPricesByExchange(
             @Parameter(description = "거래소명 (UPBIT, BINANCE 등)") @PathVariable String exchange) {
         
         List<CoinPriceDto.CoinPriceResponse> coinPrices = 
                 coinPriceService.getCoinPricesByExchange(exchange);
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(coinPrices));
+        return ResponseEntity.ok(ApiResponse.success(coinPrices));
     }
 
     /**
@@ -91,15 +96,17 @@ public class CoinPriceController {
         description = "시가총액이 크니 순으로 코인 목록을 가져옵니다. 개수를 제한할 수 있습니다.",
         tags = {"코인 가격"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/top-market-cap")
-    public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getTopCoinsByMarketCap(
+    public ResponseEntity<ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getTopCoinsByMarketCap(
             @Parameter(description = "가져올 코인 개수 (기본값: 10)") @RequestParam(defaultValue = "10") int limit) {
         
         List<CoinPriceDto.CoinPriceResponse> topCoins = 
                 coinPriceService.getTopCoinsByMarketCap(limit);
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(topCoins));
+        return ResponseEntity.ok(ApiResponse.success(topCoins));
     }
 
     /**
@@ -110,15 +117,17 @@ public class CoinPriceController {
         description = "가격 상승률이 높은 순으로 코인 목록을 조회합니다. 24시간 동안 상승율이 높은 코인을 확인할 수 있습니다.",
         tags = {"코인 가격"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/top-gainers")
-    public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getTopGainers(
+    public ResponseEntity<ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getTopGainers(
             @Parameter(description = "가져올 코인 개수 (기본값: 10)") @RequestParam(defaultValue = "10") int limit) {
         
         List<CoinPriceDto.CoinPriceResponse> topGainers = 
                 coinPriceService.getTopGainers(limit);
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(topGainers));
+        return ResponseEntity.ok(ApiResponse.success(topGainers));
     }
 
     /**
@@ -129,14 +138,16 @@ public class CoinPriceController {
         description = "가격 하락률이 높은 순으로 코인 목록을 조회합니다. 24시간 동안 하락율이 높은 코인을 확인할 수 있습니다.",
         tags = {"코인 가격"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/top-losers")
-    public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getTopLosers(
+    public ResponseEntity<ApiResponse<List<CoinPriceDto.CoinPriceResponse>>> getTopLosers(
             @Parameter(description = "가져올 코인 개수 (기본값: 10)") @RequestParam(defaultValue = "10") int limit) {
         
         List<CoinPriceDto.CoinPriceResponse> topLosers = 
                 coinPriceService.getTopLosers(limit);
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(topLosers));
+        return ResponseEntity.ok(ApiResponse.success(topLosers));
     }
 }

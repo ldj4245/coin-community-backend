@@ -71,6 +71,11 @@ public class CoinAnalysisController {
      */
     @GetMapping
     @Operation(summary = "코인 분석 목록", description = "코인 분석 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "분석 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<CoinAnalysisDto.Summary>>> getAnalyses(
             @Parameter(description = "코인 심볼 (선택사항)") 
             @RequestParam(required = false) String coinSymbol,
@@ -117,6 +122,12 @@ public class CoinAnalysisController {
      */
     @GetMapping("/my")
     @Operation(summary = "내 코인 분석 목록", description = "로그인한 사용자의 코인 분석 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "내 분석 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<CoinAnalysisDto.Summary>>> getMyAnalyses(
             @Parameter(description = "코인 심볼 (선택사항)") 
             @RequestParam(required = false) String coinSymbol,
@@ -151,6 +162,12 @@ public class CoinAnalysisController {
      */
     @GetMapping("/{analysisId}")
     @Operation(summary = "코인 분석 상세 조회", description = "코인 분석의 상세 정보를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "분석 상세 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "분석을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinAnalysisDto.Response>> getAnalysis(
             @Parameter(description = "분석 ID") @PathVariable @Min(1) Long analysisId) {
         
@@ -166,6 +183,14 @@ public class CoinAnalysisController {
      */
     @PutMapping("/{analysisId}")
     @Operation(summary = "코인 분석 수정", description = "코인 분석 정보를 수정합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "분석 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "수정 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "분석을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinAnalysisDto.Response>> updateAnalysis(
             @Parameter(description = "분석 ID") @PathVariable @Min(1) Long analysisId,
             @Valid @RequestBody CoinAnalysisDto.UpdateRequest request,
@@ -184,6 +209,14 @@ public class CoinAnalysisController {
      */
     @DeleteMapping("/{analysisId}")
     @Operation(summary = "코인 분석 삭제", description = "코인 분석을 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "분석 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "삭제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "분석을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> deleteAnalysis(
             @Parameter(description = "분석 ID") @PathVariable @Min(1) Long analysisId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -200,6 +233,13 @@ public class CoinAnalysisController {
      */
     @PostMapping("/{analysisId}/like")
     @Operation(summary = "코인 분석 좋아요", description = "코인 분석에 좋아요를 추가하거나 취소합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "좋아요 토글 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "분석을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Boolean>> toggleAnalysisLike(
             @Parameter(description = "분석 ID") @PathVariable @Min(1) Long analysisId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -217,6 +257,12 @@ public class CoinAnalysisController {
      */
     @GetMapping("/coins/{coinSymbol}/latest")
     @Operation(summary = "코인별 최신 분석", description = "특정 코인의 최신 분석들을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "코인별 최신 분석 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "코인을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<CoinAnalysisDto.Summary>>> getLatestAnalysesByCoin(
             @Parameter(description = "코인 심볼") @PathVariable String coinSymbol,
             @Parameter(description = "조회할 분석 수 (기본값: 5)") 
@@ -237,6 +283,11 @@ public class CoinAnalysisController {
      */
     @GetMapping("/popular")
     @Operation(summary = "인기 분석", description = "좋아요가 많은 인기 분석들을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인기 분석 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<CoinAnalysisDto.Summary>>> getPopularAnalyses(
             @Parameter(description = "조회할 분석 수 (기본값: 10)") 
             @RequestParam(defaultValue = "10") @Min(1) Integer limit,
@@ -258,6 +309,11 @@ public class CoinAnalysisController {
      */
     @GetMapping("/my/statistics")
     @Operation(summary = "내 분석 통계", description = "로그인한 사용자의 분석 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "내 분석 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinAnalysisDto.Statistics>> getMyAnalysisStatistics(
             @AuthenticationPrincipal UserDetails userDetails) {
         
@@ -275,6 +331,11 @@ public class CoinAnalysisController {
      */
     @GetMapping("/statistics")
     @Operation(summary = "전체 분석 통계", description = "전체 사용자의 분석 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "전체 분석 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinAnalysisDto.Statistics>> getOverallAnalysisStatistics(
             @Parameter(description = "코인 심볼 (선택사항)") 
             @RequestParam(required = false) String coinSymbol,
@@ -294,6 +355,14 @@ public class CoinAnalysisController {
      */
     @PostMapping("/{analysisId}/update-accuracy")
     @Operation(summary = "예측 정확도 업데이트", description = "분석의 예측 정확도를 업데이트합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "예측 정확도 업데이트 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "업데이트 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "분석을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinAnalysisDto.Response>> updatePredictionAccuracy(
             @Parameter(description = "분석 ID") @PathVariable @Min(1) Long analysisId,
             @Parameter(description = "실제 가격 정보") @Valid @RequestBody CoinAnalysisDto.UpdateAccuracyRequest request,
@@ -316,6 +385,11 @@ public class CoinAnalysisController {
      */
     @GetMapping("/expert")
     @Operation(summary = "전문가 분석", description = "전문가 인증을 받은 사용자들의 분석을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "전문가 분석 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<CoinAnalysisDto.Summary>>> getExpertAnalyses(
             @Parameter(description = "코인 심볼 (선택사항)") 
             @RequestParam(required = false) String coinSymbol,
@@ -345,6 +419,11 @@ public class CoinAnalysisController {
      */
     @GetMapping("/tags")
     @Operation(summary = "분석 태그 목록", description = "분석에 사용된 태그 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "분석 태그 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<String>>> getAnalysisTags(
             @Parameter(description = "코인 심볼 (선택사항)") 
             @RequestParam(required = false) String coinSymbol,

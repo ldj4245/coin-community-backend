@@ -71,6 +71,12 @@ public class CoinWatchlistController {
      */
     @GetMapping("/my")
     @Operation(summary = "내 관심종목 목록", description = "로그인한 사용자의 관심종목 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<CoinWatchlistDto.Response>>> getMyWatchlist(
             @Parameter(description = "카테고리 필터 (선택사항)") 
             @RequestParam(required = false) String category,
@@ -101,6 +107,14 @@ public class CoinWatchlistController {
      */
     @GetMapping("/{watchlistId}")
     @Operation(summary = "관심종목 상세 조회", description = "관심종목의 상세 정보를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 상세 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "접근 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "관심종목을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinWatchlistDto.Response>> getWatchlistItem(
             @Parameter(description = "관심종목 ID") @PathVariable @Min(1) Long watchlistId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -118,6 +132,14 @@ public class CoinWatchlistController {
      */
     @PutMapping("/{watchlistId}")
     @Operation(summary = "관심종목 수정", description = "관심종목 정보를 수정합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "수정 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "관심종목을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinWatchlistDto.Response>> updateWatchlistItem(
             @Parameter(description = "관심종목 ID") @PathVariable @Min(1) Long watchlistId,
             @Valid @RequestBody CoinWatchlistDto.UpdateRequest request,
@@ -136,6 +158,14 @@ public class CoinWatchlistController {
      */
     @DeleteMapping("/{watchlistId}")
     @Operation(summary = "관심종목 삭제", description = "관심종목에서 코인을 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "삭제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "관심종목을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> removeFromWatchlist(
             @Parameter(description = "관심종목 ID") @PathVariable @Min(1) Long watchlistId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -152,6 +182,13 @@ public class CoinWatchlistController {
      */
     @DeleteMapping("/coin/{coinSymbol}")
     @Operation(summary = "코인 심볼로 관심종목 삭제", description = "코인 심볼을 통해 관심종목에서 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "관심종목을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> removeFromWatchlistByCoin(
             @Parameter(description = "코인 심볼") @PathVariable String coinSymbol,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -168,6 +205,14 @@ public class CoinWatchlistController {
      */
     @PutMapping("/{watchlistId}/price-alert")
     @Operation(summary = "가격 알림 설정", description = "관심종목의 가격 알림을 설정합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "가격 알림 설정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "설정 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "관심종목을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinWatchlistDto.Response>> setPriceAlert(
             @Parameter(description = "관심종목 ID") @PathVariable @Min(1) Long watchlistId,
             @Valid @RequestBody CoinWatchlistDto.PriceAlertRequest request,
@@ -187,6 +232,11 @@ public class CoinWatchlistController {
      */
     @GetMapping("/my/statistics")
     @Operation(summary = "내 관심종목 통계", description = "로그인한 사용자의 관심종목 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<CoinWatchlistDto.Statistics>> getMyWatchlistStatistics(
             @AuthenticationPrincipal UserDetails userDetails) {
         
@@ -203,6 +253,11 @@ public class CoinWatchlistController {
      */
     @GetMapping("/categories")
     @Operation(summary = "카테고리 목록", description = "사용자의 관심종목 카테고리 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "카테고리 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<String>>> getWatchlistCategories(
             @AuthenticationPrincipal UserDetails userDetails) {
         
@@ -219,6 +274,11 @@ public class CoinWatchlistController {
      */
     @GetMapping("/alerts/triggered")
     @Operation(summary = "가격 알림 트리거 종목", description = "가격 알림이 트리거된 관심종목을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "가격 알림 트리거 종목 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<CoinWatchlistDto.Response>>> getTriggeredAlerts(
             @AuthenticationPrincipal UserDetails userDetails) {
         
@@ -235,6 +295,11 @@ public class CoinWatchlistController {
      */
     @PostMapping("/refresh-prices")
     @Operation(summary = "관심종목 가격 갱신", description = "모든 관심종목의 가격을 최신으로 업데이트합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 가격 갱신 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<CoinWatchlistDto.Summary>>> refreshWatchlistPrices(
             @AuthenticationPrincipal UserDetails userDetails) {
         
@@ -251,6 +316,11 @@ public class CoinWatchlistController {
      */
     @GetMapping("/popular")
     @Operation(summary = "인기 관심종목", description = "다른 사용자들이 많이 추가한 인기 관심종목을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인기 관심종목 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<CoinWatchlistDto.Summary>>> getPopularWatchlistCoins(
             @Parameter(description = "조회할 코인 수 (기본값: 10)") 
             @RequestParam(defaultValue = "10") @Min(1) Integer limit,
@@ -270,6 +340,13 @@ public class CoinWatchlistController {
      */
     @PostMapping("/bulk")
     @Operation(summary = "관심종목 일괄 추가", description = "여러 코인을 한 번에 관심종목에 추가합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "관심종목 일괄 추가 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 추가된 관심종목이 포함됨"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<CoinWatchlistDto.Response>>> addBulkToWatchlist(
             @Parameter(description = "코인 심볼 목록") @RequestBody List<String> coinSymbols,
             @Parameter(description = "기본 카테고리 (선택사항)") 
@@ -291,6 +368,14 @@ public class CoinWatchlistController {
      */
     @DeleteMapping("/bulk")
     @Operation(summary = "관심종목 일괄 삭제", description = "여러 관심종목을 한 번에 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "관심종목 일괄 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "삭제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "일부 관심종목을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> removeBulkFromWatchlist(
             @Parameter(description = "관심종목 ID 목록") @RequestBody List<Long> watchlistIds,
             @AuthenticationPrincipal UserDetails userDetails) {

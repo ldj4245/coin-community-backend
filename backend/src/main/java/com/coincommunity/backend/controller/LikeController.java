@@ -36,7 +36,11 @@ public class LikeController {
         tags = {"좋아요"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "좋아요 토글 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping("/posts/{postId}/like")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<Map<String, Object>>> togglePostLike(
@@ -63,7 +67,11 @@ public class LikeController {
         tags = {"좋아요"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "좋아요 토글 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping("/comments/{commentId}/like")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<Map<String, Object>>> toggleCommentLike(
@@ -90,7 +98,11 @@ public class LikeController {
         tags = {"좋아요"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상태 확인 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/posts/{postId}/like")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<Map<String, Object>>> checkPostLike(
@@ -117,7 +129,11 @@ public class LikeController {
         tags = {"좋아요"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "상태 확인 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/comments/{commentId}/like")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<Map<String, Object>>> checkCommentLike(

@@ -41,7 +41,10 @@ public class CommentController {
         description = "특정 게시글에 작성된 모든 댓글을 조회합니다. 로그인한 사용자의 경우 자신의 댓글 여부가 표시됩니다.",
         tags = {"댓글"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<List<CommentDto.CommentResponse>>> getCommentsByPost(
@@ -66,7 +69,12 @@ public class CommentController {
         tags = {"댓글"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "댓글 작성 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<CommentDto.CommentResponse>> createComment(
@@ -90,7 +98,13 @@ public class CommentController {
         tags = {"댓글"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PutMapping("/{commentId}")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<CommentDto.CommentResponse>> updateComment(
@@ -114,7 +128,12 @@ public class CommentController {
         tags = {"댓글"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "댓글 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "댓글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @DeleteMapping("/{commentId}")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<Void>> deleteComment(
@@ -125,6 +144,6 @@ public class CommentController {
         Long userId = Long.parseLong(userDetails.getUsername());
         commentService.deleteComment(commentId, userId);
         
-        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(null));
+        return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.successMessage("요청이 성공적으로 처리되었습니다."));
     }
 }
