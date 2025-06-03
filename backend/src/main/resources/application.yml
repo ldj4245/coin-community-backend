@@ -1,0 +1,122 @@
+spring:
+  application:
+    name: coin-community-backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/coin_community?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        use_sql_comments: true
+    defer-datasource-initialization: true
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
+    time-zone: Asia/Seoul
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+jwt:
+  secret: Y29pbi1jb21tdW5pdHktYmFja2VuZC1qd3Qtc2VjcmV0LWtleS1mb3ItYXV0aGVudGljYXRpb24tYW5kLWF1dGhvcml6YXRpb24=
+  expiration: 86400000 # 24 hours
+  refresh-expiration: 604800000 # 7 days
+
+# CORS 설정
+cors:
+  allowed-origins: "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+  allowed-origins-list:
+    - http://localhost:3000
+    - http://localhost:3001
+    - http://127.0.0.1:3000
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - X-Requested-With
+    - Accept
+    - Origin
+    - Access-Control-Request-Method
+    - Access-Control-Request-Headers
+  expose-headers:
+    - Authorization
+  allow-credentials: true
+  max-age: 3600
+
+external:
+  newsapi:
+    base-url: https://newsapi.org/v2
+    key: ${NEWSAPI_KEY:YOUR_NEWSAPI_KEY} # 환경변수에서 가져오거나 기본값 사용
+  guardian:
+    base-url: https://content.guardianapis.com
+    api-key: test # Guardian은 test 키로 무료 사용 가능
+  upbit:
+    base-url: https://api.upbit.com/v1
+  coinmarketcap:
+    base-url: https://pro-api.coinmarketcap.com/v1
+    key: ${COINMARKETCAP_KEY:YOUR_COINMARKETCAP_KEY}
+  coingecko:
+    base-url: https://api.coingecko.com/api/v3
+    api-key: ${COINGECKO_API_KEY:} # CoinGecko API 키 (선택사항)
+
+scheduler:
+  coin-price:
+    enable-upbit: true
+    enable-coingecko: true
+
+websocket:
+  endpoints:
+    coin-prices: /ws/coin-prices
+    notifications: /ws/notifications
+
+logging:
+  level:
+    com.coincommunity.backend: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
