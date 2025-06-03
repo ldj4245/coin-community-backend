@@ -70,6 +70,11 @@ public class PortfolioController {
      */
     @GetMapping("/my")
     @Operation(summary = "내 포트폴리오 목록 조회", description = "로그인한 사용자의 포트폴리오 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<PortfolioDto.Summary>>> getMyPortfolios(
             @PageableDefault(size = 10) Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -87,6 +92,14 @@ public class PortfolioController {
      */
     @GetMapping("/{portfolioId}")
     @Operation(summary = "포트폴리오 상세 조회", description = "포트폴리오의 상세 정보를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 상세 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "접근 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioDto.Response>> getPortfolio(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -104,6 +117,14 @@ public class PortfolioController {
      */
     @PutMapping("/{portfolioId}")
     @Operation(summary = "포트폴리오 수정", description = "포트폴리오 정보를 수정합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "수정 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioDto.Response>> updatePortfolio(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @Valid @RequestBody PortfolioDto.UpdateRequest request,
@@ -122,6 +143,14 @@ public class PortfolioController {
      */
     @DeleteMapping("/{portfolioId}")
     @Operation(summary = "포트폴리오 삭제", description = "포트폴리오를 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "삭제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> deletePortfolio(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -138,6 +167,15 @@ public class PortfolioController {
      */
     @PostMapping("/{portfolioId}/items")
     @Operation(summary = "포트폴리오 아이템 추가", description = "포트폴리오에 새로운 코인을 추가합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "포트폴리오 아이템 추가 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "추가 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 존재하는 아이템"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioItemDto.Response>> addPortfolioItem(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @Valid @RequestBody PortfolioItemDto.AddRequest request,
@@ -158,6 +196,14 @@ public class PortfolioController {
      */
     @PutMapping("/{portfolioId}/items/{itemId}")
     @Operation(summary = "포트폴리오 아이템 수정", description = "포트폴리오 아이템 정보를 수정합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 아이템 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "수정 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오 또는 아이템을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioItemDto.Response>> updatePortfolioItem(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @Parameter(description = "아이템 ID") @PathVariable @Min(1) Long itemId,
@@ -178,6 +224,14 @@ public class PortfolioController {
      */
     @DeleteMapping("/{portfolioId}/items/{itemId}")
     @Operation(summary = "포트폴리오 아이템 삭제", description = "포트폴리오에서 아이템을 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 아이템 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "삭제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오 또는 아이템을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> removePortfolioItem(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @Parameter(description = "아이템 ID") @PathVariable @Min(1) Long itemId,
@@ -196,6 +250,11 @@ public class PortfolioController {
      */
     @GetMapping("/my/statistics")
     @Operation(summary = "내 포트폴리오 통계", description = "로그인한 사용자의 포트폴리오 전체 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioDto.Statistics>> getMyPortfolioStatistics(
             @AuthenticationPrincipal UserDetails userDetails) {
         
@@ -212,6 +271,11 @@ public class PortfolioController {
      */
     @GetMapping("/public")
     @Operation(summary = "공개 포트폴리오 목록", description = "공개된 포트폴리오 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "공개 포트폴리오 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<PortfolioDto.Summary>>> getPublicPortfolios(
             @Parameter(description = "수익률 기준 필터 (예: 'high', 'positive')") 
             @RequestParam(required = false) String performanceFilter,
@@ -232,6 +296,14 @@ public class PortfolioController {
      */
     @PostMapping("/{portfolioId}/refresh-prices")
     @Operation(summary = "포트폴리오 가격 갱신", description = "포트폴리오의 모든 코인 가격을 최신으로 업데이트합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오 가격 갱신 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "갱신 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioDto.Response>> refreshPortfolioPrices(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -249,6 +321,14 @@ public class PortfolioController {
      */
     @PostMapping("/{portfolioId}/clone")
     @Operation(summary = "포트폴리오 복제", description = "기존 포트폴리오를 복제하여 새로운 포트폴리오를 생성합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "포트폴리오 복제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "복제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "원본 포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PortfolioDto.Response>> clonePortfolio(
             @Parameter(description = "복제할 포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @Parameter(description = "새 포트폴리오 이름") @RequestParam String newName,

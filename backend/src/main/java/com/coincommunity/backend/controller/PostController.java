@@ -42,7 +42,10 @@ public class PostController {
         description = "모든 게시글을 페이지네이션으로 조회합니다. 카테고리 필터링이 가능합니다.",
         tags = {"게시글"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<PageResponse<PostDto.SummaryResponse>>> getAllPosts(
@@ -75,7 +78,10 @@ public class PostController {
         description = "특정 게시글의 상세 내용을 조회합니다. 좋아요 여부도 표시됩니다.",
         tags = {"게시글"}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/{id}")
     public ResponseEntity<com.coincommunity.backend.dto.ApiResponse<PostDto.DetailResponse>> getPostById(
@@ -95,10 +101,22 @@ public class PostController {
     /**
      * 게시글 생성
      */
+    @Operation(
+        summary = "게시글 생성",
+        description = "새로운 게시글을 작성합니다.",
+        tags = {"게시글"},
+        security = {@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer")}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "게시글 생성 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @PostMapping
     public ResponseEntity<ApiResponse<PostDto.DetailResponse>> createPost(
             @Valid @RequestBody PostDto.CreateRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
         
         Long userId = Long.parseLong(userDetails.getUsername());
         PostDto.PostResponse postResponse = postService.createPost(request, userId);
@@ -111,11 +129,25 @@ public class PostController {
     /**
      * 게시글 수정
      */
+    @Operation(
+        summary = "게시글 수정",
+        description = "기존 게시글을 수정합니다. 작성자만 수정할 수 있습니다.",
+        tags = {"게시글"},
+        security = {@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer")}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "게시글 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PostDto.DetailResponse>> updatePost(
-            @PathVariable Long id,
+            @Parameter(description = "게시글 ID") @PathVariable Long id,
             @Valid @RequestBody PostDto.UpdateRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
         
         Long userId = Long.parseLong(userDetails.getUsername());
         PostDto.PostResponse postResponse = postService.updatePost(id, request, userId);
@@ -127,23 +159,45 @@ public class PostController {
     /**
      * 게시글 삭제
      */
+    @Operation(
+        summary = "게시글 삭제",
+        description = "게시글을 삭제합니다. 작성자만 삭제할 수 있습니다.",
+        tags = {"게시글"},
+        security = {@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer")}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "게시글 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deletePost(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @Parameter(description = "게시글 ID") @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
         
         Long userId = Long.parseLong(userDetails.getUsername());
         postService.deletePost(id, userId);
         
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.successMessage("요청이 성공적으로 처리되었습니다."));
     }
 
     /**
      * 인기 게시글 목록 조회
      */
+    @Operation(
+        summary = "인기 게시글 목록 조회",
+        description = "좋아요가 많은 인기 게시글 목록을 조회합니다.",
+        tags = {"게시글"}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @GetMapping("/popular")
     public ResponseEntity<ApiResponse<List<PostDto.SummaryResponse>>> getPopularPosts(
-            @RequestParam(defaultValue = "10") int limit) {
+            @Parameter(description = "조회할 게시글 수") @RequestParam(defaultValue = "10") int limit) {
         
         List<PostDto.PostSummaryResponse> postSummaryList = postService.getPopularPosts(limit);
         List<PostDto.SummaryResponse> posts = postSummaryList.stream()
@@ -155,9 +209,18 @@ public class PostController {
     /**
      * 최근 게시글 목록 조회
      */
+    @Operation(
+        summary = "최근 게시글 목록 조회",
+        description = "최근에 작성된 게시글 목록을 조회합니다.",
+        tags = {"게시글"}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @GetMapping("/recent")
     public ResponseEntity<ApiResponse<List<PostDto.SummaryResponse>>> getRecentPosts(
-            @RequestParam(defaultValue = "10") int limit) {
+            @Parameter(description = "조회할 게시글 수") @RequestParam(defaultValue = "10") int limit) {
         
         List<PostDto.PostSummaryResponse> postSummaryList = postService.getRecentPosts(limit);
         List<PostDto.SummaryResponse> posts = postSummaryList.stream()
@@ -169,9 +232,19 @@ public class PostController {
     /**
      * 게시글 검색
      */
+    @Operation(
+        summary = "게시글 검색",
+        description = "키워드로 게시글을 검색합니다.",
+        tags = {"게시글"}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "검색 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<PostDto.SummaryResponse>>> searchPosts(
-            @RequestParam String keyword,
+            @Parameter(description = "검색 키워드") @RequestParam String keyword,
             @PageableDefault(size = 10) Pageable pageable) {
         
         Page<PostDto.PostSummaryResponse> postSummaryPage = postService.searchPosts(keyword, pageable);

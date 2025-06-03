@@ -125,7 +125,10 @@ public class NotificationController {
         tags = {"알림"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "읽음 처리 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PatchMapping("/read-all")
     public ResponseEntity<ApiResponse<Void>> markAllAsRead(
@@ -133,7 +136,7 @@ public class NotificationController {
             
         Long userId = Long.parseLong(userDetails.getUsername());
         notificationService.markAllAsRead(userId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.successMessage("요청이 성공적으로 처리되었습니다."));
     }
     
     /**
@@ -145,13 +148,17 @@ public class NotificationController {
         tags = {"알림"},
         security = {@SecurityRequirement(name = "Bearer")}
     )
-    @ApiResponses(value = {
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "알림 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "알림을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteNotification(
             @Parameter(description = "알림 ID") @PathVariable Long id) {
             
         notificationService.deleteNotification(id);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(ApiResponse.successMessage("요청이 성공적으로 처리되었습니다."));
     }
 }
