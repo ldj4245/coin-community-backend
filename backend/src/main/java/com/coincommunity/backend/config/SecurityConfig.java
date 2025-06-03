@@ -28,9 +28,9 @@ import java.util.List;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    
+
     /**
      * 비밀번호 인코더 빈 등록
      */
@@ -38,7 +38,7 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
+
     /**
      * AuthenticationManager 빈 등록
      */
@@ -46,7 +46,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
-    
+
     /**
      * 보안 필터 체인 설정
      */
@@ -60,13 +60,13 @@ public class SecurityConfig {
                 // 인증 없이 접근 가능한 API 설정
                 .requestMatchers("/users/register", "/users/login").permitAll()
                 .requestMatchers("/news/**", "/coins/**").permitAll()
+                .requestMatchers("/exchange-prices/**").permitAll()
+                .requestMatchers("/kimchi-premium/**").permitAll()
                 .requestMatchers("/posts").permitAll()
                 .requestMatchers("/posts/*/comments").permitAll()
                 .requestMatchers("/posts/popular", "/posts/recent", "/posts/search").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/health").permitAll()
-                // 테스트 엔드포인트 허용
-                .requestMatchers("/test/**").permitAll()
                 // Swagger UI 관련 경로 허용
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
@@ -76,10 +76,10 @@ public class SecurityConfig {
             )
             // JWT 필터 추가
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        
+
         return http.build();
     }
-    
+
     /**
      * CORS 설정
      */
@@ -92,7 +92,7 @@ public class SecurityConfig {
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

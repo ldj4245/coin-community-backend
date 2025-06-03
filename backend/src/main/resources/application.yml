@@ -11,12 +11,12 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false  # SQL 로그 출력 비활성화
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true
-        use_sql_comments: true
+        format_sql: false  # SQL 포맷팅 비활성화
+        use_sql_comments: false  # SQL 주석 비활성화
     defer-datasource-initialization: true
 
   redis:
@@ -35,14 +35,7 @@ spring:
     default-property-inclusion: NON_NULL
     time-zone: Asia/Seoul
 
-server:
-  port: 8080
-  servlet:
-    context-path: /api
-    encoding:
-      charset: UTF-8
-      enabled: true
-      force: true
+
 
 jwt:
   secret: Y29pbi1jb21tdW5pdHktYmFja2VuZC1qd3Qtc2VjcmV0LWtleS1mb3ItYXV0aGVudGljYXRpb24tYW5kLWF1dGhvcml6YXRpb24=
@@ -77,40 +70,64 @@ cors:
   max-age: 3600
 
 external:
+  # 뉴스 API 설정
   newsapi:
     base-url: https://newsapi.org/v2
     key: ${NEWSAPI_KEY:YOUR_NEWSAPI_KEY} # 환경변수에서 가져오거나 기본값 사용
   guardian:
     base-url: https://content.guardianapis.com
     api-key: test # Guardian은 test 키로 무료 사용 가능
+  naver:
+    base-url: https://openapi.naver.com/v1
+    client-id: ${NAVER_CLIENT_ID:YOUR_NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET:YOUR_NAVER_CLIENT_SECRET}
+
+  # 국내 거래소 API 설정
   upbit:
-    base-url: https://api.upbit.com/v1
+    base-url: https://api.upbit.com
+    version: v1
+  bithumb:
+    base-url: https://api.bithumb.com
+    version: public
+  coinone:
+    base-url: https://api.coinone.co.kr
+    version: public/v2
+  korbit:
+    base-url: https://api.korbit.co.kr
+    version: v1
+
+  # 해외 거래소 API 설정
+  binance:
+    base-url: https://api.binance.com
+    version: api/v3
   coinmarketcap:
     base-url: https://pro-api.coinmarketcap.com/v1
     key: ${COINMARKETCAP_KEY:YOUR_COINMARKETCAP_KEY}
   coingecko:
-    base-url: https://api.coingecko.com/api/v3
+    base-url: https://api.coingecko.com
+    version: api/v3
     api-key: ${COINGECKO_API_KEY:} # CoinGecko API 키 (선택사항)
 
 scheduler:
   coin-price:
     enable-upbit: true
     enable-coingecko: true
+    disable-korbit: true
 
 websocket:
   endpoints:
     coin-prices: /ws/coin-prices
     notifications: /ws/notifications
 
-logging:
-  level:
-    com.coincommunity.backend: DEBUG
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+#logging:
+#  level:
+#    com.coincommunity.backend: DEBUG
+#    org.springframework.security: DEBUG
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 management:
   endpoints:

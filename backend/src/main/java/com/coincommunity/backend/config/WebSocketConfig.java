@@ -11,6 +11,7 @@ import org.springframework.web.socket.config.annotation.*;
 /**
  * WebSocket 설정을 위한 구성 클래스
  * STOMP 메시징 브로커와 기본 WebSocket 핸들러를 모두 지원
+ *
  */
 @Configuration
 @EnableWebSocket
