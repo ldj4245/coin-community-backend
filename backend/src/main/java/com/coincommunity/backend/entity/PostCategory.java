@@ -11,7 +11,16 @@ public enum PostCategory {
     BEGINNER("초보자가이드"),
     MINING("채굴"),
     NFT("NFT"),
-    NOTICE("공지사항");
+    NOTICE("공지사항"),
+    TRADING_STRATEGY("트레이딩 전략"),
+    DEFI("디파이"),
+    ALTCOIN_DISCUSSION("알트코인 토론"),
+    BITCOIN("비트코인"),
+    ETHEREUM("이더리움"),
+    TECHNICAL_ANALYSIS("기술적 분석"),
+    FUNDAMENTAL_ANALYSIS("기본적 분석"),
+    PRICE_PREDICTION("가격 예측"),
+    COMMUNITY_EVENT("커뮤니티 이벤트");
 
     private final String displayName;
 

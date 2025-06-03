@@ -11,17 +11,23 @@ import java.time.LocalDateTime;
 
 /**
  * 코인 가격 정보를 저장하는 엔티티
+ * 복합키 (coinId + exchange)를 사용하여 같은 코인의 다양한 거래소 가격 정보를 저장합니다.
  */
 @Entity
 @Table(name = "coin_prices")
 @Getter
 @Setter
 @NoArgsConstructor
+@IdClass(CoinPriceId.class)
 public class CoinPrice {
-    
+
     @Id
     @Column(name = "coin_id")
     private String coinId; // BTC, ETH 등
+
+    @Id
+    @Column(name = "exchange", nullable = false)
+    private String exchange; // UPBIT, BITHUMB, BINANCE 등
     
     @Column(nullable = false)
     private String koreanName;
@@ -37,9 +43,6 @@ public class CoinPrice {
     
     @Column(precision = 30, scale = 8)
     private BigDecimal volume24h;
-    
-    @Column(nullable = false)
-    private String exchange; // UPBIT, BITHUMB 등
     
     @UpdateTimestamp
     private LocalDateTime lastUpdated;
