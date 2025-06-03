@@ -1,7 +1,8 @@
 package com.coincommunity.backend.external.exchange.upbit;
 
-import com.coincommunity.backend.entity.CoinPrice;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.coincommunity.backend.dto.ExchangePriceDto;
+import com.coincommunity.backend.dto.ExchangePriceDto.TradingStatus;
+import com.coincommunity.backend.external.exchange.ExchangeApiStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,22 +24,82 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class UpbitApiClient {
+public class UpbitApiClient implements ExchangeApiStrategy {
     
     private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
     
-    @Value("${external.upbit.base-url:https://api.upbit.com/v1}")
+    @Value("${external.upbit.base-url}")
     private String baseUrl;
     
+    @Value("${external.upbit.version}")
+    private String version;
+    
     private static final String EXCHANGE = "UPBIT";
+    
+    // API 엔드포인트 상수 정의
+    private static final String MARKET_ALL_ENDPOINT = "/market/all";
+    private static final String TICKER_ENDPOINT = "/ticker";
+    
+    /**
+     * 완전한 API URL 생성
+     */
+    private String buildUrl(String endpoint) {
+        return baseUrl + "/" + version + endpoint;
+    }
+    
+    @Override
+    public String getExchangeName() {
+        return EXCHANGE;
+    }
+    
+    @Override
+    public ExchangeApiStrategy.ExchangeType getExchangeType() {
+        return ExchangeApiStrategy.ExchangeType.DOMESTIC;
+    }
+    
+    @Override
+    public List<String> getSupportedCoins() {
+        return getMarkets().stream()
+                .map(market -> market.split("-")[1])
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<ExchangePriceDto> getAllCoinPrices() {
+        List<String> markets = getMarkets();
+        return getTickers(markets);
+    }
+    
+    @Override
+    public ExchangePriceDto getCoinPrice(String coinSymbol) {
+        String market = "KRW-" + coinSymbol.toUpperCase();
+        List<ExchangePriceDto> prices = getTickers(List.of(market));
+        return prices.isEmpty() ? null : prices.get(0);
+    }
+    
+    @Override
+    public List<ExchangePriceDto> getTopCoinsByMarketCap(int limit) {
+        return getTopCoinPrices().stream().limit(limit).collect(Collectors.toList());
+    }
+    
+    @Override
+    public boolean isHealthy() {
+        try {
+            String url = buildUrl(MARKET_ALL_ENDPOINT);
+            UpbitMarket[] markets = restTemplate.getForObject(url, UpbitMarket[].class);
+            return markets != null && markets.length > 0;
+        } catch (Exception e) {
+            log.warn("업비트 API 건강 상태 확인 실패", e);
+            return false;
+        }
+    }
     
     /**
      * 업비트에서 제공하는 시장 코드(마켓) 목록을 조회합니다.
      */
     public List<String> getMarkets() {
         try {
-            String url = baseUrl + "/market/all";
+            String url = buildUrl(MARKET_ALL_ENDPOINT);
             UpbitMarket[] markets = restTemplate.getForObject(url, UpbitMarket[].class);
             
             if (markets != null) {
@@ -57,19 +118,19 @@ public class UpbitApiClient {
     /**
      * 주어진 마켓 코드에 대한 현재 시세 정보를 조회합니다.
      */
-    public List<CoinPrice> getTickers(List<String> markets) {
+    public List<ExchangePriceDto> getTickers(List<String> markets) {
         if (markets == null || markets.isEmpty()) {
             return new ArrayList<>();
         }
         
         try {
             String marketParam = String.join(",", markets);
-            String url = baseUrl + "/ticker?markets=" + marketParam;
+            String url = buildUrl(TICKER_ENDPOINT + "?markets=" + marketParam);
             
             UpbitTicker[] tickers = restTemplate.getForObject(url, UpbitTicker[].class);
             
             if (tickers != null) {
-                List<CoinPrice> coinPrices = new ArrayList<>();
+                List<ExchangePriceDto> exchangePrices = new ArrayList<>();
                 
                 for (UpbitTicker ticker : tickers) {
                     try {
@@ -78,32 +139,33 @@ public class UpbitApiClient {
                         if (marketParts.length == 2) {
                             String coinId = marketParts[1];
                             
-                            CoinPrice coinPrice = new CoinPrice();
-                            coinPrice.setCoinId(coinId);
-                            
                             // 코인 이름은 별도로 설정 필요
                             Map<String, String> coinNames = getCoinNames();
                             String koreanName = coinNames.getOrDefault(coinId, coinId);
-                            coinPrice.setKoreanName(koreanName);
-                            coinPrice.setEnglishName(coinId);
                             
-                            coinPrice.setCurrentPrice(ticker.getTradePrice());
-                            coinPrice.setPriceChangePercent(ticker.getSignedChangeRate().multiply(BigDecimal.valueOf(100)));
-                            coinPrice.setVolume24h(ticker.getAccTradeVolume24h());
-                            coinPrice.setExchange(EXCHANGE);
-                            coinPrice.setHighPrice24h(ticker.getHighPrice());
-                            coinPrice.setLowPrice24h(ticker.getLowPrice());
-                            coinPrice.setMarketCap(null); // 업비트는 시가총액 제공 안함
-                            coinPrice.setLastUpdated(LocalDateTime.now());
+                            ExchangePriceDto exchangePrice = ExchangePriceDto.builder()
+                                .exchangeName(EXCHANGE)
+                                .exchangeKoreanName("업비트")
+                                .exchangeType(com.coincommunity.backend.dto.ExchangePriceDto.ExchangeType.DOMESTIC)
+                                .symbol(coinId)
+                                .koreanName(koreanName)
+                                .currentPrice(ticker.getTradePrice())
+                                .changeRate(ticker.getSignedChangeRate().multiply(BigDecimal.valueOf(100)))
+                                .highPrice24h(ticker.getHighPrice())
+                                .lowPrice24h(ticker.getLowPrice())
+                                .volume24h(ticker.getAccTradeVolume24h())
+                                .status(TradingStatus.NORMAL)
+                                .lastUpdated(LocalDateTime.now())
+                                .build();
                             
-                            coinPrices.add(coinPrice);
+                            exchangePrices.add(exchangePrice);
                         }
                     } catch (Exception e) {
                         log.warn("업비트 티커를 처리하는 중 오류가 발생했습니다: {}", ticker.getMarket(), e);
                     }
                 }
                 
-                return coinPrices;
+                return exchangePrices;
             }
         } catch (Exception e) {
             log.error("업비트 티커 정보를 가져오는 중 오류가 발생했습니다", e);
@@ -117,7 +179,7 @@ public class UpbitApiClient {
      */
     private Map<String, String> getCoinNames() {
         try {
-            String url = baseUrl + "/market/all";
+            String url = buildUrl(MARKET_ALL_ENDPOINT);
             UpbitMarket[] markets = restTemplate.getForObject(url, UpbitMarket[].class);
             
             if (markets != null) {
@@ -139,7 +201,7 @@ public class UpbitApiClient {
     /**
      * 주요 코인들의 현재 시세 정보를 조회합니다.
      */
-    public List<CoinPrice> getTopCoinPrices() {
+    public List<ExchangePriceDto> getTopCoinPrices() {
         // 주요 코인 목록
         List<String> topCoins = List.of("KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-SOL", 
                 "KRW-ADA", "KRW-DOGE", "KRW-DOT", "KRW-MATIC", "KRW-AVAX", "KRW-TRX");
