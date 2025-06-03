@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class CoinPriceDto {
      * 코인 가격 응답 DTO
      */
     @Getter
+    @Setter // Setter 추가
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
@@ -35,7 +37,8 @@ public class CoinPriceDto {
         private BigDecimal highPrice24h;
         private BigDecimal lowPrice24h;
         private BigDecimal marketCap;
-        
+        private String note; // 노트 필드 추가
+
         /**
          * CoinPrice 엔티티로부터 CoinPriceResponse DTO를 생성합니다.
          */

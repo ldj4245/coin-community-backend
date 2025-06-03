@@ -1,6 +1,7 @@
 package com.coincommunity.backend.repository;
 
 import com.coincommunity.backend.entity.CoinPrice;
+import com.coincommunity.backend.entity.CoinPriceId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -10,9 +11,10 @@ import java.util.Optional;
 
 /**
  * 코인 가격 정보에 대한 데이터 액세스 인터페이스
+ * CoinPriceId 복합키를 사용하여 코인-거래소 조합별 가격 정보를 관리합니다.
  */
 @Repository
-public interface CoinPriceRepository extends JpaRepository<CoinPrice, String> {
+public interface CoinPriceRepository extends JpaRepository<CoinPrice, CoinPriceId> {
 
     /**
      * 특정 거래소의 모든 코인 가격을 조회합니다.
