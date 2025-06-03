@@ -73,6 +73,12 @@ public class TransactionController {
      */
     @GetMapping("/my")
     @Operation(summary = "내 거래 내역 목록", description = "로그인한 사용자의 거래 내역 목록을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "거래 내역 목록 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<TransactionDto.Response>>> getMyTransactions(
             @Parameter(description = "포트폴리오 ID (선택사항)") 
             @RequestParam(required = false) @Min(1) Long portfolioId,
@@ -111,6 +117,14 @@ public class TransactionController {
      */
     @GetMapping("/{transactionId}")
     @Operation(summary = "거래 내역 상세 조회", description = "거래 내역의 상세 정보를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "거래 내역 상세 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "접근 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "거래 내역을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<TransactionDto.Response>> getTransaction(
             @Parameter(description = "거래 ID") @PathVariable @Min(1) Long transactionId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -128,6 +142,14 @@ public class TransactionController {
      */
     @PutMapping("/{transactionId}")
     @Operation(summary = "거래 내역 수정", description = "거래 내역 정보를 수정합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "거래 내역 수정 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "수정 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "거래 내역을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<TransactionDto.Response>> updateTransaction(
             @Parameter(description = "거래 ID") @PathVariable @Min(1) Long transactionId,
             @Valid @RequestBody TransactionDto.CreateRequest request,
@@ -146,6 +168,14 @@ public class TransactionController {
      */
     @DeleteMapping("/{transactionId}")
     @Operation(summary = "거래 내역 삭제", description = "거래 내역을 삭제합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "거래 내역 삭제 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "삭제 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "거래 내역을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<Void>> deleteTransaction(
             @Parameter(description = "거래 ID") @PathVariable @Min(1) Long transactionId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -162,6 +192,14 @@ public class TransactionController {
      */
     @GetMapping("/portfolio/{portfolioId}")
     @Operation(summary = "포트폴리오별 거래 내역", description = "특정 포트폴리오의 거래 내역을 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "포트폴리오별 거래 내역 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "접근 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<PageResponse<TransactionDto.Response>>> getPortfolioTransactions(
             @Parameter(description = "포트폴리오 ID") @PathVariable @Min(1) Long portfolioId,
             @Parameter(description = "코인 심볼 (선택사항)") 
@@ -191,6 +229,12 @@ public class TransactionController {
      */
     @GetMapping("/my/statistics")
     @Operation(summary = "내 거래 통계", description = "로그인한 사용자의 거래 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "거래 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<TransactionDto.Summary>> getMyTransactionSummary(
             @Parameter(description = "포트폴리오 ID (선택사항)") 
             @RequestParam(required = false) @Min(1) Long portfolioId,
@@ -212,6 +256,12 @@ public class TransactionController {
      */
     @GetMapping("/my/statistics/period")
     @Operation(summary = "기간별 거래 통계", description = "특정 기간의 상세한 거래 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "기간별 거래 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<TransactionDto.Statistics>>> getPeriodStatistics(
             @Parameter(description = "시작일") 
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -235,6 +285,12 @@ public class TransactionController {
      */
     @GetMapping("/my/statistics/coins")
     @Operation(summary = "코인별 거래 통계", description = "코인별 거래 통계를 조회합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "코인별 거래 통계 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<TransactionDto.Statistics>>> getCoinStatistics(
             @Parameter(description = "통계 기간 (일수, 기본값: 30)") 
             @RequestParam(defaultValue = "30") @Min(1) Integer days,
@@ -256,6 +312,14 @@ public class TransactionController {
      */
     @PostMapping("/import")
     @Operation(summary = "거래 내역 일괄 가져오기", description = "CSV 파일로 거래 내역을 일괄 등록합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "거래 내역 일괄 가져오기 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 CSV 형식 또는 데이터"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "포트폴리오 접근 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<List<TransactionDto.Response>>> importTransactions(
             @Parameter(description = "포트폴리오 ID") @RequestParam @Min(1) Long portfolioId,
             @Parameter(description = "CSV 데이터") @RequestBody String csvData,
@@ -276,6 +340,14 @@ public class TransactionController {
      */
     @GetMapping("/export")
     @Operation(summary = "거래 내역 내보내기", description = "거래 내역을 CSV 형태로 내보냅니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "거래 내역 내보내기 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 매개변수"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "포트폴리오 접근 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "포트폴리오를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
     public ResponseEntity<ApiResponse<String>> exportTransactions(
             @Parameter(description = "포트폴리오 ID (선택사항)") 
             @RequestParam(required = false) @Min(1) Long portfolioId,
