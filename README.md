@@ -1,6 +1,6 @@
 # 🪙 Coin Community Backend
 
-> **암호화폐 커뮤니티 플랫폼 -  Spring Boot 백엔드**
+> **암호화폐 커뮤니티 플랫폼 - Spring Boot 백엔드**
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-17-blue.svg)](https://www.oracle.com/java/technologies/javase-jdk17-downloads.html)
@@ -69,113 +69,221 @@
 
 ## 📊 데이터베이스 ERD
 
-```
-┌───────────────────┐        ┌───────────────────┐        ┌───────────────────┐
-│       User        │        │       Post        │        │      Comment      │
-├───────────────────┤        ├───────────────────┤        ├───────────────────┤
-│ id (PK)           │◄───┐   │ id (PK)           │◄─┐     │ id (PK)           │
-│ email             │    │   │ title             │  │     │ content           │
-│ password          │    │   │ content           │  │     │ createdAt         │
-│ nickname          │    ├───┤ userId (FK)       │  │     │ updatedAt         │
-│ profileImage      │    │   │ categoryId (FK)   │  │     │ userId (FK)       │◄──┐
-│ role              │    │   │ viewCount         │  │     │ postId (FK)       │◄┐ │
-│ status            │    │   │ createdAt         │  │     └───────────────────┘ │ │
-│ createdAt         │    │   │ updatedAt         │  │                           │ │
-│ updatedAt         │    │   └───────────────────┘  │                           │ │
-└───────────────────┘    │                          │                           │ │
-         ▲               │   ┌───────────────────┐  │                           │ │
-         │               │   │    PostLike       │  │                           │ │
-         │               │   ├───────────────────┤  │                           │ │
-         │               └───┤ userId (FK)       │  │                           │ │
-         │                   │ postId (FK)       │◄─┘                           │ │
-         │                   │ createdAt         │                              │ │
-         │                   └───────────────────┘                              │ │
-         │                                                                      │ │
-         │               ┌───────────────────┐         ┌───────────────────┐    │ │
-         └───────────────┤    UserScore      │         │   CommentLike     │    │ │
-         │               ├───────────────────┤         ├───────────────────┤    │ │
-         │               │ userId (FK)       │◄────┐   │ userId (FK)       │◄───┘ │
-         │               │ score             │     │   │ commentId (FK)    │◄─────┘
-         │               │ level             │     │   │ createdAt         │
-         │               │ updatedAt         │     │   └───────────────────┘
-         │               └───────────────────┘     │
-         │                                         │
-┌────────┴──────────┐   ┌───────────────────┐     │   ┌───────────────────┐
-│    Portfolio      │   │   PostCategory    │     │   │   Notification     │
-├───────────────────┤   ├───────────────────┤     │   ├───────────────────┤
-│ id (PK)           │   │ id (PK)           │     │   │ id (PK)           │
-│ name              │   │ name              │     │   │ userId (FK)       │◄────┐
-│ description       │   │ description       │     │   │ message           │     │
-│ userId (FK)       │◄──┤ parentId (FK)     │     │   │ type              │     │
-│ createdAt         │   │ createdAt         │     │   │ isRead            │     │
-│ updatedAt         │   └───────────────────┘     │   │ createdAt         │     │
-└───────────────────┘                             │   └───────────────────┘     │
-         ▲                                        │                             │
-         │                                        │                             │
-┌────────┴──────────┐                             │   ┌───────────────────┐     │
-│   PortfolioItem   │   ┌───────────────────┐     │   │ NotificationPreference│ │
-├───────────────────┤   │    CoinPrice      │     │   ├───────────────────┤     │
-│ id (PK)           │   ├───────────────────┤     │   │ id (PK)           │     │
-│ portfolioId (FK)  │   │ id (PK)           │     │   │ userId (FK)       │◄────┘
-│ coinSymbol        │   │ symbol            │     │   │ priceAlerts       │
-│ amount            │   │ name              │     │   │ communityNotifs   │
-│ purchasePrice     │   │ price             │     │   │ newsNotifs        │
-│ createdAt         │   │ exchangeId        │     │   │ updatedAt         │
-│ updatedAt         │   │ updatedAt         │     │   └───────────────────┘
-└───────────────────┘   └───────────────────┘     │
-                                                  │   ┌───────────────────┐
-┌───────────────────┐   ┌───────────────────┐     │   │   PriceAlert      │
-│   Transaction     │   │   CoinWatchlist   │     │   ├───────────────────┤
-├───────────────────┤   ├───────────────────┤     │   │ id (PK)           │
-│ id (PK)           │   │ id (PK)           │     │   │ userId (FK)       │◄────┐
-│ userId (FK)       │◄──┤ userId (FK)       │◄────┘   │ coinSymbol        │     │
-│ coinSymbol        │   │ coinSymbol        │         │ targetPrice       │     │
-│ type (buy/sell)   │   │ createdAt         │         │ condition         │     │
-│ amount            │   └───────────────────┘         │ isActive          │     │
-│ price             │                                 │ createdAt         │     │
-│ exchangeId        │   ┌───────────────────┐         └───────────────────┘     │
-│ createdAt         │   │   CoinAnalysis    │                                   │
-└───────────────────┘   ├───────────────────┤         ┌───────────────────┐     │
-                        │ id (PK)           │         │      News         │     │
-                        │ coinSymbol        │         ├───────────────────┤     │
-                        │ analysis          │         │ id (PK)           │     │
-                        │ sentiment         │         │ title             │     │
-                        │ prediction        │         │ content           │     │
-                        │ createdAt         │         │ source            │     │
-                        │ updatedAt         │         │ imageUrl          │     │
-                        └───────────────────┘         │ publishedAt       │     │
-                                 ▲                    │ createdAt         │     │
-                                 │                    └───────────────────┘     │
-                        ┌────────┴──────────┐                                   │
-                        │  AnalysisLike     │         ┌───────────────────┐     │
-                        ├───────────────────┤         │  NotificationStats │    │
-                        │ userId (FK)       │◄────────┤ userId (FK)       │◄────┘
-                        │ analysisId (FK)   │         │ totalCount        │
-                        │ createdAt         │         │ readCount         │
-                        └───────────────────┘         │ lastUpdated       │
-                                                      └───────────────────┘
+```mermaid
+erDiagram
+    User ||--o{ Post : writes
+    User ||--o{ Comment : writes
+    User ||--o{ PostLike : creates
+    User ||--o{ CommentLike : creates
+    User ||--o{ UserScore : has
+    User ||--o{ Portfolio : owns
+    User ||--o{ Transaction : makes
+    User ||--o{ CoinWatchlist : manages
+    User ||--o{ Notification : receives
+    User ||--o{ NotificationPreference : has
+    User ||--o{ PriceAlert : sets
+    User ||--o{ AnalysisLike : creates
+    User ||--o{ NotificationStats : has
+
+    Post ||--o{ Comment : has
+    Post ||--o{ PostLike : has
+    Post }|--|| PostCategory : belongs_to
+
+    Portfolio ||--o{ PortfolioItem : contains
+
+    CoinAnalysis ||--o{ AnalysisLike : has
+
+    User {
+        Long id PK
+        String email
+        String password
+        String nickname
+        String profileImage
+        String role
+        String status
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Post {
+        Long id PK
+        String title
+        String content
+        Long userId FK
+        Long categoryId FK
+        Integer viewCount
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Comment {
+        Long id PK
+        String content
+        DateTime createdAt
+        DateTime updatedAt
+        Long userId FK
+        Long postId FK
+    }
+
+    PostLike {
+        Long userId FK
+        Long postId FK
+        DateTime createdAt
+    }
+
+    CommentLike {
+        Long userId FK
+        Long commentId FK
+        DateTime createdAt
+    }
+
+    UserScore {
+        Long userId FK
+        Integer score
+        Integer level
+        DateTime updatedAt
+    }
+
+    Portfolio {
+        Long id PK
+        String name
+        String description
+        Long userId FK
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    PortfolioItem {
+        Long id PK
+        Long portfolioId FK
+        String coinSymbol
+        BigDecimal amount
+        BigDecimal purchasePrice
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Transaction {
+        Long id PK
+        Long userId FK
+        String coinSymbol
+        String type
+        BigDecimal amount
+        BigDecimal price
+        String exchangeId
+        DateTime createdAt
+    }
+
+    CoinWatchlist {
+        Long id PK
+        Long userId FK
+        String coinSymbol
+        DateTime createdAt
+    }
+
+    CoinPrice {
+        Long id PK
+        String symbol
+        String name
+        BigDecimal price
+        String exchangeId
+        DateTime updatedAt
+    }
+
+    CoinAnalysis {
+        Long id PK
+        String coinSymbol
+        String analysis
+        String sentiment
+        String prediction
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    AnalysisLike {
+        Long userId FK
+        Long analysisId FK
+        DateTime createdAt
+    }
+
+    Notification {
+        Long id PK
+        Long userId FK
+        String message
+        String type
+        Boolean isRead
+        DateTime createdAt
+    }
+
+    NotificationPreference {
+        Long id PK
+        Long userId FK
+        Boolean priceAlerts
+        Boolean communityNotifs
+        Boolean newsNotifs
+        DateTime updatedAt
+    }
+
+    PriceAlert {
+        Long id PK
+        Long userId FK
+        String coinSymbol
+        BigDecimal targetPrice
+        String condition
+        Boolean isActive
+        DateTime createdAt
+    }
+
+    News {
+        Long id PK
+        String title
+        String content
+        String source
+        String imageUrl
+        DateTime publishedAt
+        DateTime createdAt
+    }
+
+    NotificationStats {
+        Long userId FK
+        Integer totalCount
+        Integer readCount
+        DateTime lastUpdated
+    }
+
+    PostCategory {
+        Long id PK
+        String name
+        String description
+        Long parentId FK
+        DateTime createdAt
+    }
 ```
 
 ## 🔑 주요 엔티티 설명
 
 ### 👤 사용자 및 인증
+
 - **User**: 사용자 기본 정보 및 인증 데이터
 - **UserRole**: 사용자 권한(ADMIN, USER 등)
 - **UserScore**: 사용자 활동 점수 및 레벨
 - **UserStatus**: 계정 상태(ACTIVE, SUSPENDED 등)
 
 ### 💰 포트폴리오 관리
+
 - **Portfolio**: 사용자 포트폴리오 정보
 - **PortfolioItem**: 포트폴리오 내 개별 코인 보유 정보
 - **Transaction**: 거래 내역(매수/매도)
 - **CoinWatchlist**: 사용자별 관심 코인 목록
 
 ### 📈 코인 데이터
+
 - **CoinPrice**: 코인별 실시간 가격 정보
 - **CoinPriceId**: 코인 가격 복합 키(코인+거래소)
 - **CoinAnalysis**: 코인별 분석 및 예측 정보
 
 ### 🗣️ 커뮤니티
+
 - **Post**: 게시글 정보
 - **PostCategory**: 게시글 카테고리
 - **Comment**: 게시글에 대한 댓글
@@ -185,6 +293,7 @@
 - **AnalysisBookmark**: 분석 글 북마크
 
 ### 📰 뉴스 및 알림
+
 - **News**: 암호화폐 관련 뉴스
 - **Notification**: 사용자별 알림 메시지
 - **NotificationPreference**: 알림 설정
@@ -197,6 +306,7 @@
 ## 🏛️ 아키텍처 및 기술 구현
 
 ### 📐 계층 구조
+
 이 프로젝트는 전통적인 Spring Boot 애플리케이션의 계층 구조를 따릅니다:
 
 ```
@@ -235,6 +345,7 @@ Controller → Service → Repository → Database
 ```
 
 구현 특징:
+
 - 거래소 API 인터페이스 추상화
 - 팩토리 클래스를 통한 적절한 거래소 API 클라이언트 제공
 - 런타임에 전략 교체 가능
@@ -282,6 +393,7 @@ Controller → Service → Repository → Database
 ## 💻 사용 기술
 
 ### 백엔드 프레임워크
+
 - Spring Boot 3.2.0
 - Spring Data JPA
 - Spring Security
@@ -289,11 +401,13 @@ Controller → Service → Repository → Database
 - Spring Cache
 
 ### 데이터베이스
+
 - MySQL 8.0 (메인 DB)
 - Redis (캐싱, 세션)
 - MongoDB (시계열 데이터)
 
 ### 개발 도구
+
 - Gradle
 - Docker
 - GitHub Actions
@@ -302,16 +416,19 @@ Controller → Service → Repository → Database
 ## 🚀 성능 최적화
 
 ### 캐싱 전략
+
 - 다단계 캐싱 (앱 내 캐시 → Redis → DB)
 - 거래소 API 호출 최소화를 위한 캐싱
 - 이벤트 기반 캐시 무효화
 
 ### 비동기 처리
+
 - 병렬 API 호출로 응답 시간 단축
 - 비동기 이벤트 기반 알림 처리
 - 대용량 데이터 처리를 위한 배치 작업
 
 ### DB 최적화
+
 - 주요 쿼리 인덱싱
 - 대용량 데이터 파티셔닝
 - 읽기/쓰기 분리
@@ -319,6 +436,7 @@ Controller → Service → Repository → Database
 ## 📑 API 문서
 
 Swagger UI를 통해 API 문서를 확인할 수 있습니다:
+
 - 개발 환경: `http://localhost:8080/swagger-ui.html`
 
 ## 🛡️ 보안
