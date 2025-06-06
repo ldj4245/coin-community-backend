@@ -30,41 +30,139 @@
 
 ## 🏗️ 시스템 아키텍처
 
+```mermaid
+flowchart TB
+    subgraph Client["Client Layer"]
+        Web["Web Client"]
+        Mobile["Mobile App"]
+    end
+
+    subgraph External["External Services"]
+        Exchanges["Crypto Exchanges"]
+        FCM["Firebase Cloud Messaging"]
+    end
+
+    subgraph Gateway["API Gateway"]
+        Auth["JWT Auth"]
+        CORS["CORS"]
+        RateLimit["Rate Limiting"]
+        Validation["Request Validation"]
+    end
+
+    subgraph Controllers["Controller Layer"]
+        PortfolioCtrl["Portfolio"]
+        AnalysisCtrl["Analysis"]
+        CommunityCtrl["Community"]
+        PriceCtrl["Price"]
+        NotifCtrl["Notification"]
+        AuthCtrl["Auth"]
+    end
+
+    subgraph Services["Service Layer"]
+        BusinessLogic["Business Logic"]
+        Cache["Cache Management"]
+        ExternalAPI["External API Integration"]
+    end
+
+    subgraph Data["Data Access Layer"]
+        JPA["JPA/Hibernate"]
+        Redis["Redis Cache"]
+        Scheduler["Scheduler"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        MySQL["MySQL Database"]
+        RedisCluster["Redis Cluster"]
+        WebSocket["WebSocket Hub"]
+    end
+
+    Client --> Gateway
+    External --> Gateway
+    Gateway --> Controllers
+    Controllers --> Services
+    Services --> Data
+    Data --> Storage
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client Apps   │    │  External APIs  │    │  Push Services  │
-│  React/Mobile   │    │ Upbit/Bithumb   │    │      FCM        │
-└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    API Gateway (Spring Boot)                    │
-├─────────────────────────────────────────────────────────────────┤
-│  JWT Auth  │  CORS   │  Rate Limiting  │  Request Validation   │
-└─────────┬───────────────────────────────────────────────────────┘
-          │
-┌─────────▼───────────────────────────────────────────────────────┐
-│                      Controller Layer                          │
-├─────────────────────────────────────────────────────────────────┤
-│ Portfolio │ Analysis │ Community │ Price │ Notification │ Auth │
-└─────────┬───────────────────────────────────────────────────────┘
-          │
-┌─────────▼───────────────────────────────────────────────────────┐
-│                       Service Layer                            │
-├─────────────────────────────────────────────────────────────────┤
-│ Business Logic │ Cache Management │ External API Integration    │
-└─────────┬───────────────────────────────────────────────────────┘
-          │
-┌─────────▼───────────────────────────────────────────────────────┐
-│                    Data Access Layer                           │
-├─────────────────────────────────────────────────────────────────┤
-│      JPA/Hibernate      │      Redis Cache      │   Scheduler   │
-└─────────┬──────────────────────────┬─────────────────────┬──────┘
-          │                          │                     │
-┌─────────▼───────┐    ┌─────────────▼──────┐    ┌─────────▼──────┐
-│  MySQL Database │    │   Redis Cluster    │    │  WebSocket Hub │
-│   Master/Slave  │    │  Cache & Session   │    │  Real-time I/O │
-└─────────────────┘    └────────────────────┘    └────────────────┘
+
+## 🔄 거래소 연동 패턴
+
+```mermaid
+classDiagram
+    class ExchangeApiStrategy {
+        <<interface>>
+        +getPrice()
+        +getOrderBook()
+        +placeOrder()
+    }
+
+    class UpbitApiClient {
+        +getPrice()
+        +getOrderBook()
+        +placeOrder()
+    }
+
+    class BithumbApiClient {
+        +getPrice()
+        +getOrderBook()
+        +placeOrder()
+    }
+
+    class CoinoneApiClient {
+        +getPrice()
+        +getOrderBook()
+        +placeOrder()
+    }
+
+    class KobitApiClient {
+        +getPrice()
+        +getOrderBook()
+        +placeOrder()
+    }
+
+    class CoinGeckoApiClient {
+        +getPrice()
+        +getOrderBook()
+        +placeOrder()
+    }
+
+    class ExchangeApiFactory {
+        +createExchangeApi()
+    }
+
+    ExchangeApiStrategy <|.. UpbitApiClient
+    ExchangeApiStrategy <|.. BithumbApiClient
+    ExchangeApiStrategy <|.. CoinoneApiClient
+    ExchangeApiStrategy <|.. KobitApiClient
+    ExchangeApiStrategy <|.. CoinGeckoApiClient
+    ExchangeApiFactory ..> ExchangeApiStrategy
+```
+
+## 📡 거래소 통합 시스템
+
+```mermaid
+flowchart LR
+    subgraph Integration["거래소 API 통합 레이어"]
+        Price["가격 정보"]
+        Order["주문 처리"]
+        Market["마켓 정보"]
+    end
+
+    subgraph Exchanges["거래소"]
+        Upbit["업비트"]
+        Bithumb["빗썸"]
+        Coinone["코인원"]
+        Kobit["코빗"]
+        CoinGecko["CoinGecko"]
+    end
+
+    subgraph Services["서비스"]
+        PriceService["가격 서비스"]
+        OrderService["주문 서비스"]
+        MarketService["마켓 서비스"]
+    end
+
+    Integration --> Services
+    Services --> Exchanges
 ```
 
 ## 📊 데이터베이스 ERD
@@ -350,44 +448,118 @@ Controller → Service → Repository → Database
 - 팩토리 클래스를 통한 적절한 거래소 API 클라이언트 제공
 - 런타임에 전략 교체 가능
 
-### 📡 거래소 통합 시스템
-
-```
-┌──────────────────────────────────────────────────────┐
-│                  거래소 API 통합 레이어                │
-├──────────────────────────────────────────────────────┤
-│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐ │
-│  │ 가격 정보    │   │  주문 처리   │   │ 마켓 정보   │ │
-│  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘ │
-│         └─────────────────┼─────────────────┘        │
-│                           │                          │
-│                   전략 컨텍스트/팩토리                  │
-└──────────────────────────┬┬───────────────────────────┘
-                           ││
-        ┌─────────────────┘└──────────────────┐
-        │                                     │
-┌───────▼───────────┐               ┌─────────▼─────────┐
-│   국내 거래소      │               │   해외 거래소      │
-├───────────────────┤               ├───────────────────┤
-│ - 업비트          │               │ - 바이낸스         │
-│ - 빗썸           │               │ - 코인게코         │
-│ - 코인원          │               │                   │
-│ - 코빗           │               │                   │
-└───────────────────┘               └───────────────────┘
-```
-
 ### 📊 김치프리미엄 계산 로직
 
-국내 거래소와 해외 거래소 간 가격 차이를 실시간으로 모니터링합니다:
+```mermaid
+flowchart TD
+    subgraph DataCollection["데이터 수집"]
+        KR["국내 거래소"]
+        Global["해외 거래소"]
+        KR -->|가격 데이터| PriceData
+        Global -->|가격 데이터| PriceData
+    end
 
-- 계산식: `(국내가격평균 - 해외가격평균) / 해외가격평균 * 100`
-- 프리미엄 변동에 따른 알림 기능
-- 거래소별 가격 차트 비교 시각화
+    subgraph PriceData["가격 데이터 처리"]
+        KRPrice["국내 가격"]
+        GlobalPrice["해외 가격"]
+        ExchangeRate["환율 정보"]
+    end
 
-### 🔄 실시간 데이터 처리 흐름
+    subgraph Calculation["프리미엄 계산"]
+        KRPrice -->|원화 가격| PremiumCalc
+        GlobalPrice -->|달러 가격| PremiumCalc
+        ExchangeRate -->|환율 적용| PremiumCalc
+        PremiumCalc["프리미엄 = (국내가격 - 해외가격*환율) / 해외가격*환율 * 100"]
+    end
 
+    subgraph Monitoring["모니터링"]
+        Threshold["임계값 체크"]
+        Alert["알림 발송"]
+        Dashboard["대시보드 업데이트"]
+    end
+
+    DataCollection --> PriceData
+    PriceData --> Calculation
+    Calculation --> Monitoring
 ```
-수집 → 가공 → 캐싱 → 분석 → 이벤트 발행 → 알림/저장
+
+## 🛠️ 기술 스택
+
+```mermaid
+mindmap
+    root((Coin Community))
+        Backend
+            Spring Boot
+                Spring Security
+                Spring Data JPA
+                Spring WebSocket
+            Java 17
+            MySQL
+            Redis
+        Frontend
+            React
+            TypeScript
+            Tailwind CSS
+        DevOps
+            Docker
+            GitHub Actions
+            AWS
+        Monitoring
+            Prometheus
+            Grafana
+        Testing
+            JUnit
+            Mockito
+            TestContainers
+```
+
+## 🔌 API 엔드포인트 구조
+
+```mermaid
+graph TD
+    subgraph Auth["인증 API"]
+        Login["POST /api/v1/auth/login"]
+        Register["POST /api/v1/auth/register"]
+        Refresh["POST /api/v1/auth/refresh"]
+    end
+
+    subgraph User["사용자 API"]
+        Profile["GET /api/v1/users/profile"]
+        UpdateProfile["PUT /api/v1/users/profile"]
+        UserSettings["GET /api/v1/users/settings"]
+    end
+
+    subgraph Portfolio["포트폴리오 API"]
+        PortfolioList["GET /api/v1/portfolios"]
+        PortfolioCreate["POST /api/v1/portfolios"]
+        PortfolioDetail["GET /api/v1/portfolios/{id}"]
+        PortfolioUpdate["PUT /api/v1/portfolios/{id}"]
+    end
+
+    subgraph Market["시장 데이터 API"]
+        Price["GET /api/v1/market/prices"]
+        OrderBook["GET /api/v1/market/orderbook"]
+        Premium["GET /api/v1/market/premium"]
+    end
+
+    subgraph Community["커뮤니티 API"]
+        Posts["GET /api/v1/posts"]
+        PostCreate["POST /api/v1/posts"]
+        Comments["GET /api/v1/posts/{id}/comments"]
+        Like["POST /api/v1/posts/{id}/like"]
+    end
+
+    subgraph Notification["알림 API"]
+        Notifications["GET /api/v1/notifications"]
+        NotificationSettings["PUT /api/v1/notifications/settings"]
+        PriceAlerts["POST /api/v1/notifications/alerts"]
+    end
+
+    Auth --> User
+    User --> Portfolio
+    User --> Community
+    User --> Notification
+    Market --> Portfolio
 ```
 
 ## 💻 사용 기술
