@@ -112,18 +112,8 @@ public class UserScoreService {
         int newTotalScore = userScore.getTotalScore() + request.getAdditionalScore();
         userScore.setTotalScore(Math.max(0, newTotalScore)); // 음수 방지
         
-        // 활동별 점수 업데이트
-        switch (request.getActivityType()) {
-            case "ANALYSIS":
-                userScore.setAnalysisScore(userScore.getAnalysisScore() + request.getAdditionalScore());
-                break;
-            case "COMMUNITY":
-                userScore.setCommunityScore(userScore.getCommunityScore() + request.getAdditionalScore());
-                break;
-            case "TRADING":
-                userScore.setTradingScore(userScore.getTradingScore() + request.getAdditionalScore());
-                break;
-        }
+        // 활동별 점수는 총점으로 통합 관리 (간소화된 버전)
+        log.info("활동 타입: {}, 추가 점수: {}", request.getActivityType(), request.getAdditionalScore());
         
         // 전문가 상태 업데이트
         updateExpertStatus(userScore);
@@ -245,8 +235,8 @@ public class UserScoreService {
             achievements.add(createAchievement("오천점 달성", "총 점수 5000점 달성", true));
         }
         
-        // 전문가 인증
-        if (userScore.isExpert()) {
+        // 전문가 인증 (총점 기준)
+        if (userScore.getTotalScore() >= EXPERT_THRESHOLD_SCORE) {
             achievements.add(createAchievement("전문가 인증", "전문가 자격 인증 완료", true));
         }
         
@@ -314,7 +304,7 @@ public class UserScoreService {
         List<UserScoreDto.Badge> badges = new ArrayList<>();
         
         UserScore userScore = userScoreRepository.findByUserId(user.getId()).orElse(null);
-        if (userScore != null && userScore.isExpert()) {
+        if (userScore != null && userScore.getTotalScore() >= EXPERT_THRESHOLD_SCORE) {
             badges.add(UserScoreDto.Badge.builder()
                 .badgeId(1L)
                 .badgeName("전문가")
@@ -412,7 +402,7 @@ public class UserScoreService {
                     .totalScore(userScore.getTotalScore())
                     .level(level)
                     .levelName(LEVEL_NAMES[Math.min(level, LEVEL_NAMES.length - 1)])
-                    .isExpert(userScore.isExpert())
+                    .isExpert(userScore.isVerified())
                     .profileImageUrl(user.getProfileImageUrl())
                     .build();
             })
@@ -452,33 +442,32 @@ public class UserScoreService {
         UserScore userScore = UserScore.builder()
             .user(user)
             .totalScore(0)
-            .analysisScore(0)
-            .communityScore(0)
-            .tradingScore(0)
-            .isExpert(false)
+            .level(1)
+            .analysisCount(0)
+            .analysisAccuracyRate(0.0)
             .build();
         return userScoreRepository.save(userScore);
     }
 
     private void updateUserScoreRealtime(User user, UserScore userScore) {
-        // 실시간 점수 재계산 로직
+        // 실시간 점수 재계산 로직 (간소화)
         int analysisScore = calculateTotalAnalysisScore(user.getId());
         int communityScore = calculateTotalCommunityScore(user.getId());
         int tradingScore = calculateTotalTradingScore(user.getId());
         
-        userScore.setAnalysisScore(analysisScore);
-        userScore.setCommunityScore(communityScore);
-        userScore.setTradingScore(tradingScore);
-        userScore.setTotalScore(analysisScore + communityScore + tradingScore);
+        int totalScore = analysisScore + communityScore + tradingScore;
+        userScore.setTotalScore(Math.max(0, totalScore));
         
         updateExpertStatus(userScore);
         userScoreRepository.save(userScore);
     }
 
     private void updateExpertStatus(UserScore userScore) {
-        boolean isExpert = userScore.getTotalScore() >= EXPERT_THRESHOLD_SCORE &&
-                          calculateUserAccuracy(userScore.getUser().getId()) >= EXPERT_ACCURACY_THRESHOLD;
-        userScore.setExpert(isExpert);
+        double accuracy = calculateUserAccuracy(userScore.getUser().getId());
+        userScore.updateAnalysisAccuracy(accuracy);
+        
+        // 인증 상태는 UserScore 엔티티 내부에서 관리
+        log.debug("사용자 전문가 상태 업데이트: 점수={}, 정확도={}", userScore.getTotalScore(), accuracy);
     }
 
     private int calculateLevel(int totalScore) {
@@ -522,7 +511,7 @@ public class UserScoreService {
             .totalScore(userScore.getTotalScore())
             .level(level)
             .levelName(LEVEL_NAMES[Math.min(level, LEVEL_NAMES.length - 1)])
-            .isExpert(userScore.isExpert())
+            .isExpert(userScore.isVerified())
             .profileImageUrl(user.getProfileImageUrl())
             .build();
     }
@@ -538,7 +527,7 @@ public class UserScoreService {
             .totalScore(userScore.getTotalScore())
             .level(level)
             .levelName(LEVEL_NAMES[Math.min(level, LEVEL_NAMES.length - 1)])
-            .isExpert(userScore.isExpert())
+            .isExpert(userScore.isVerified())
             .profileImageUrl(user.getProfileImageUrl())
             .build();
     }

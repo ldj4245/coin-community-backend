@@ -203,20 +203,22 @@ public class PostDto {
      * 게시글 상세 응답 DTO (DetailResponse 별칭)
      */
     public static class DetailResponse extends PostResponse {
-        /**
-         * Post 엔티티로부터 DetailResponse DTO를 생성합니다.
-         */
-        public static DetailResponse from(Post post) {
-            PostResponse postResponse = PostResponse.from(post);
-            return (DetailResponse) postResponse;
-        }
-        
-        /**
-         * Post 엔티티로부터 DetailResponse DTO를 생성하며, 좋아요 상태를 설정합니다.
-         */
-        public static DetailResponse from(Post post, boolean liked) {
-            PostResponse postResponse = PostResponse.from(post, liked);
-            return (DetailResponse) postResponse;
+        public DetailResponse(PostResponse postResponse) {
+            super(
+                postResponse.getId(),
+                postResponse.getTitle(),
+                postResponse.getContent(),
+                postResponse.getCategory(),
+                postResponse.getCategoryDisplayName(),
+                postResponse.getViewCount(),
+                postResponse.getLikeCount(),
+                postResponse.getCommentCount(),
+                postResponse.getImageUrls(),
+                postResponse.getCreatedAt(),
+                postResponse.getUpdatedAt(),
+                postResponse.getUser(),
+                postResponse.isLiked()
+            );
         }
     }
     
@@ -224,12 +226,18 @@ public class PostDto {
      * 게시글 요약 응답 DTO (SummaryResponse 별칭)  
      */
     public static class SummaryResponse extends PostSummaryResponse {
-        /**
-         * Post 엔티티로부터 SummaryResponse DTO를 생성합니다.
-         */
-        public static SummaryResponse from(Post post) {
-            PostSummaryResponse postSummaryResponse = PostSummaryResponse.from(post);
-            return (SummaryResponse) postSummaryResponse;
+        public SummaryResponse(PostSummaryResponse postSummaryResponse) {
+            super(
+                postSummaryResponse.getId(),
+                postSummaryResponse.getTitle(),
+                postSummaryResponse.getCategory(),
+                postSummaryResponse.getCategoryDisplayName(),
+                postSummaryResponse.getViewCount(),
+                postSummaryResponse.getLikeCount(),
+                postSummaryResponse.getCommentCount(),
+                postSummaryResponse.getCreatedAt(),
+                postSummaryResponse.getUser()
+            );
         }
     }
 }

@@ -339,20 +339,44 @@ public class PortfolioService {
     @Transactional
     @CacheEvict(value = "userPortfolios", allEntries = true)
     public PortfolioDto.Response createPortfolio(String username, PortfolioDto.CreateRequest request) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
-        
-        Portfolio portfolio = createPortfolio(user.getId(), request.getName(), 
-                request.getDescription(), request.getIsPublic());
-        
-        return convertToResponseDto(portfolio);
+        try {
+            // principal username은 실제 사용자 ID 문자열이므로 파싱
+            Long userId = Long.parseLong(username);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+            // Builder로 기본 객체 생성
+            Portfolio portfolio = Portfolio.builder()
+                    .name(request.getName())
+                    .description(request.getDescription())
+                    .isDefault(false)
+                    .isPublic(request.getIsPublic())
+                    .totalInvestment(request.getInitialInvestment())
+                    .currentValue(BigDecimal.ZERO)
+                    .totalReturnPercent(BigDecimal.ZERO)
+                    .totalReturnAmount(BigDecimal.ZERO)
+                    .build();
+            
+            // User와의 관계 설정
+            portfolio.addToUser(user);
+            
+            // 저장
+            Portfolio savedPortfolio = portfolioRepository.save(portfolio);
+            
+            log.info("포트폴리오 생성 완료: userId={}, portfolioId={}, name={}", 
+                    user.getId(), savedPortfolio.getId(), request.getName());
+            
+            return convertToResponseDto(savedPortfolio);
+        } catch (Exception e) {
+            log.error("포트폴리오 생성 중 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("포트폴리오를 생성하는 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 
     /**
      * 사용자 포트폴리오 목록 조회 (DTO 기반)
      */
     public PageResponse<PortfolioDto.Summary> getUserPortfolios(String username, Pageable pageable) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         List<Portfolio> portfolios = getUserPortfolios(user.getId());
@@ -367,7 +391,7 @@ public class PortfolioService {
      * 포트폴리오 상세 조회 (DTO 기반)
      */
     public PortfolioDto.Response getPortfolioDetails(Long portfolioId, String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         Portfolio portfolio = getPortfolioById(portfolioId);
@@ -382,7 +406,7 @@ public class PortfolioService {
     @Transactional
     @CacheEvict(value = {"portfolioDetail", "userPortfolios"}, allEntries = true)
     public PortfolioDto.Response updatePortfolio(Long portfolioId, String username, PortfolioDto.UpdateRequest request) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         Portfolio portfolio = getPortfolioById(portfolioId);
@@ -408,7 +432,7 @@ public class PortfolioService {
     @Transactional
     @CacheEvict(value = {"portfolioDetail", "userPortfolios"}, allEntries = true)
     public void deletePortfolio(Long portfolioId, String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         Portfolio portfolio = getPortfolioById(portfolioId);
@@ -428,12 +452,16 @@ public class PortfolioService {
      */
     @Transactional
     public PortfolioItemDto.Response addPortfolioItem(Long portfolioId, String username, PortfolioItemDto.AddRequest request) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
+        
+        // exchange 필드는 NULL이 허용되지 않으므로 기본값 제공
+        String exchange = "default";
+        String memo = request.getNotes();
         
         PortfolioItem item = addPurchaseTransaction(user.getId(), portfolioId, request.getCoinSymbol(), 
                 request.getCoinSymbol(), request.getCoinSymbol(), request.getQuantity(), 
-                request.getAveragePrice(), null, null);
+                request.getAveragePrice(), exchange, memo);
         
         return convertToItemResponseDto(item);
     }
@@ -444,7 +472,7 @@ public class PortfolioService {
     @Transactional
     public PortfolioItemDto.Response updatePortfolioItem(Long portfolioId, Long itemId, String username, 
                                                         PortfolioItemDto.UpdateRequest request) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         // 기존 메서드와 시그니처가 다르므로 직접 구현
@@ -471,7 +499,7 @@ public class PortfolioService {
      */
     @Transactional
     public void removePortfolioItem(Long portfolioId, Long itemId, String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         PortfolioItem item = portfolioItemRepository.findById(itemId)
@@ -485,7 +513,7 @@ public class PortfolioService {
      * 사용자 포트폴리오 통계 (DTO 기반)
      */
     public PortfolioDto.Statistics getUserPortfolioStatistics(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         // 실제 통계 계산 (user.getId() 사용)
@@ -533,7 +561,7 @@ public class PortfolioService {
      */
     @Transactional
     public PortfolioDto.Response refreshPortfolioPrices(Long portfolioId, String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         Portfolio portfolio = getPortfolioById(portfolioId);
@@ -551,7 +579,7 @@ public class PortfolioService {
      */
     @Transactional
     public PortfolioDto.Response clonePortfolio(Long portfolioId, String username, String newName) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
         
         Portfolio originalPortfolio = getPortfolioById(portfolioId);

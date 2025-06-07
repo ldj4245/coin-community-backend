@@ -4,13 +4,17 @@ import com.coincommunity.backend.entity.User;
 import com.coincommunity.backend.entity.UserRole;
 import com.coincommunity.backend.entity.UserStatus;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.Builder;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * 사용자 정보 관련 DTO 클래스
@@ -21,9 +25,9 @@ public class UserDto {
      * 회원 가입 요청 DTO
      */
     @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
-    @AllArgsConstructor
     public static class SignupRequest {
         @NotBlank(message = "사용자명은 필수 입력값입니다")
         @Size(min = 3, max = 20, message = "사용자명은 3~20자 사이여야 합니다")
@@ -38,21 +42,39 @@ public class UserDto {
         private String password;
         
         private String nickname;
+
+        @JsonCreator
+        public SignupRequest(@JsonProperty("username") String username, 
+                             @JsonProperty("email") String email, 
+                             @JsonProperty("password") String password, 
+                             @JsonProperty("nickname") String nickname) {
+            this.username = username;
+            this.email = email;
+            this.password = password;
+            this.nickname = nickname;
+        }
     }
     
     /**
      * 로그인 요청 DTO
      */
     @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
-    @AllArgsConstructor
     public static class LoginRequest {
         @NotBlank(message = "사용자명 또는 이메일을 입력해주세요")
         private String usernameOrEmail;
         
         @NotBlank(message = "비밀번호를 입력해주세요")
         private String password;
+
+        @JsonCreator
+        public LoginRequest(@JsonProperty("usernameOrEmail") String usernameOrEmail, 
+                            @JsonProperty("password") String password) {
+            this.usernameOrEmail = usernameOrEmail;
+            this.password = password;
+        }
     }
     
     /**
@@ -142,6 +164,9 @@ public class UserDto {
      * 로그인 응답 DTO (LoginResponse 별칭)
      */
     public static class LoginResponse extends AuthResponse {
+        public LoginResponse(String accessToken, String tokenType, UserResponse user) {
+            super(accessToken, tokenType, user);
+        }
     }
     
     /**

@@ -10,11 +10,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +39,10 @@ public class UpbitApiClient implements ExchangeApiStrategy {
     private static final String MARKET_ALL_ENDPOINT = "/market/all";
     private static final String TICKER_ENDPOINT = "/ticker";
     
+    private static final Map<String, String> coinNameCache = new ConcurrentHashMap<>();
+    private static LocalDateTime lastCacheRefresh = LocalDateTime.now().minusDays(1);
+    private static final Duration CACHE_TTL = Duration.ofMinutes(10);
+
     /**
      * 완전한 API URL 생성
      */
@@ -132,6 +135,9 @@ public class UpbitApiClient implements ExchangeApiStrategy {
             if (tickers != null) {
                 List<ExchangePriceDto> exchangePrices = new ArrayList<>();
                 
+                // 코인 이름 정보를 한 번만 가져오도록 개선
+                Map<String, String> coinNames = getCoinNames();
+
                 for (UpbitTicker ticker : tickers) {
                     try {
                         // 마켓 코드에서 코인 ID 추출 (ex: KRW-BTC -> BTC)
@@ -139,8 +145,7 @@ public class UpbitApiClient implements ExchangeApiStrategy {
                         if (marketParts.length == 2) {
                             String coinId = marketParts[1];
                             
-                            // 코인 이름은 별도로 설정 필요
-                            Map<String, String> coinNames = getCoinNames();
+                            // 미리 가져온 코인 이름 맵에서 조회
                             String koreanName = coinNames.getOrDefault(coinId, coinId);
                             
                             ExchangePriceDto exchangePrice = ExchangePriceDto.builder()
@@ -176,26 +181,43 @@ public class UpbitApiClient implements ExchangeApiStrategy {
     
     /**
      * 코인 ID와 한글 이름 매핑을 반환합니다.
+     * 메모리 캐싱을 활용해 API 호출 횟수를 줄임
      */
     private Map<String, String> getCoinNames() {
-        try {
-            String url = buildUrl(MARKET_ALL_ENDPOINT);
-            UpbitMarket[] markets = restTemplate.getForObject(url, UpbitMarket[].class);
-            
-            if (markets != null) {
-                return Arrays.stream(markets)
-                        .filter(m -> m.getMarket().startsWith("KRW-"))
-                        .collect(Collectors.toMap(
-                            m -> m.getMarket().split("-")[1],
-                            UpbitMarket::getKoreanName,
-                            (existing, replacement) -> existing
-                        ));
+        // 캐시가 비어있거나 TTL이 만료된 경우에만 API 호출
+        if (coinNameCache.isEmpty() || Duration.between(lastCacheRefresh, LocalDateTime.now()).compareTo(CACHE_TTL) > 0) {
+            try {
+                log.info("업비트 코인 이름 정보 캐시를 갱신합니다.");
+                String url = buildUrl(MARKET_ALL_ENDPOINT);
+                UpbitMarket[] markets = restTemplate.getForObject(url, UpbitMarket[].class);
+
+                if (markets != null) {
+                    // 새 캐시 맵 생성
+                    Map<String, String> newCache = Arrays.stream(markets)
+                            .filter(m -> m.getMarket().startsWith("KRW-"))
+                            .collect(Collectors.toMap(
+                                m -> m.getMarket().split("-")[1],
+                                UpbitMarket::getKoreanName,
+                                (existing, replacement) -> existing
+                            ));
+
+                    // 캐시 업데이트
+                    coinNameCache.clear();
+                    coinNameCache.putAll(newCache);
+                    lastCacheRefresh = LocalDateTime.now();
+                    log.info("업비트 코인 이름 정보 캐시 갱신 완료: {} 개 코인", coinNameCache.size());
+                }
+            } catch (Exception e) {
+                log.error("업비트 코인 이름 정보를 가져오는 중 오류가 발생했습니다", e);
+                // 캐시가 비어있는 경우 빈 맵 반환
+                if (coinNameCache.isEmpty()) {
+                    return new HashMap<>();
+                }
+                // 이전 캐시 데이터 계속 사용
             }
-        } catch (Exception e) {
-            log.error("업비트 코인 이름 정보를 가져오는 중 오류가 발생했습니다", e);
         }
         
-        return Map.of();
+        return coinNameCache;
     }
     
     /**

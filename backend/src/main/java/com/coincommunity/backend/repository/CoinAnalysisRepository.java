@@ -165,7 +165,7 @@ public interface CoinAnalysisRepository extends JpaRepository<CoinAnalysis, Long
      * 전문가(검증된) 사용자의 분석글 조회
      */
     @Query("SELECT ca FROM CoinAnalysis ca WHERE ca.user.id IN " +
-           "(SELECT us.user.id FROM UserScore us WHERE us.isExpert = true) " +
+           "(SELECT us.user.id FROM UserScore us WHERE us.isVerified = true) " +
            "ORDER BY ca.createdAt DESC")
     Page<CoinAnalysis> findExpertAnalysis(Pageable pageable);
 

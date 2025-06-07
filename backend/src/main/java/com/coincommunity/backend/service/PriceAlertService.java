@@ -126,7 +126,6 @@ public class PriceAlertService {
      * 가격 알림 처리 (스케줄러에서 호출)
      */
     @Scheduled(fixedRate = 60000) // 1분마다 실행
-    @Transactional
     public void processPriceAlerts() {
         log.info("가격 알림 처리 시작");
 
@@ -159,9 +158,14 @@ public class PriceAlertService {
 
                 ExchangePriceDto priceInfo = prices.get(0);
 
-                // 각 알림 처리
+                // 각 알림 처리 - 개별 트랜잭션으로 처리
                 for (PriceAlert alert : alerts) {
-                    processAlert(alert, priceInfo);
+                    try {
+                        processAlertWithTransaction(alert, priceInfo);
+                    } catch (Exception e) {
+                        log.error("개별 알림 처리 중 오류 발생 - alertId: {}, symbol: {}", alert.getId(), alert.getSymbol(), e);
+                        // 개별 알림 오류는 다른 알림 처리에 영향을 주지 않도록 함
+                    }
                 }
             }
 
@@ -172,9 +176,10 @@ public class PriceAlertService {
     }
 
     /**
-     * 개별 알림 처리
+     * 개별 알림 처리 (트랜잭션 분리)
      */
-    private void processAlert(PriceAlert alert, ExchangePriceDto priceInfo) {
+    @Transactional
+    public void processAlertWithTransaction(PriceAlert alert, ExchangePriceDto priceInfo) {
         // 최근에 처리된 알림인지 확인 (5분 이내)
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime recentlyProcessed = recentlyProcessedAlerts.get(alert.getId());
@@ -201,35 +206,24 @@ public class PriceAlertService {
             }
 
             // 웹소켓으로 알림 전송
-            Notification notification = Notification.builder()
-                    .userId(alert.getUser().getId())
-                    .type("PRICE_ALERT")
-                    .title("가격 알림")
-                    .message(message)
-                    .data(Map.of(
-                            "alertId", alert.getId(),
-                            "symbol", alert.getSymbol(),
-                            "targetPrice", alert.getTargetPrice(),
-                            "currentPrice", priceInfo.getCurrentPrice(),
-                            "alertType", alert.getAlertType()
-                    ))
-                    .createdAt(LocalDateTime.now())
-                    .build();
+            sendAlert(alert.getUser().getId(), message, alert);
 
-            notificationWebSocketHandler.sendNotification(alert.getUser().getId(), notification);
+            // 최근 처리된 알림으로 기록
+            recentlyProcessedAlerts.put(alert.getId(), now);
+
+            log.info("가격 알림 트리거됨 - ID: {}, 사용자: {}, 코인: {}, 타입: {}, 가격: {}",
+                    alert.getId(), alert.getUser().getId(), alert.getSymbol(),
+                    alert.getAlertType(), priceInfo.getCurrentPrice());
 
             // 반복 알림이 아니면 완료 상태로 변경
             if (!alert.isRepeat()) {
                 alert.updateStatus(PriceAlertDto.AlertStatus.COMPLETED);
                 priceAlertRepository.save(alert);
             } else {
-                // 반복 알림인 경우 최근 처리 시간 기록
-                recentlyProcessedAlerts.put(alert.getId(), now);
+                // 반복 알림은 다시 PENDING 상태로
+                alert.updateStatus(PriceAlertDto.AlertStatus.PENDING);
+                priceAlertRepository.save(alert);
             }
-
-            log.info("가격 알림 발동 - ID: {}, 사용자: {}, 코인: {}, 목표가: {}, 현재가: {}", 
-                    alert.getId(), alert.getUser().getId(), alert.getSymbol(), 
-                    alert.getTargetPrice(), priceInfo.getCurrentPrice());
         }
     }
 
@@ -250,5 +244,47 @@ public class PriceAlertService {
                 .createdAt(priceAlert.getCreatedAt())
                 .lastTriggeredAt(priceAlert.getLastTriggeredAt())
                 .build();
+    }
+
+    /**
+     * 웹소켓을 통해 알림을 전송합니다.
+     *
+     * @param userId 알림을 받을 사용자 ID
+     * @param message 알림 메시지
+     * @param alert 관련 가격 알림 엔티티
+     */
+    private void sendAlert(Long userId, String message, PriceAlert alert) {
+        try {
+            Notification notification = Notification.builder()
+                .type("PRICE_ALERT")
+                .message(message)
+                .userId(userId)
+                .data(Map.of(
+                    "alertId", alert.getId(),
+                    "symbol", alert.getSymbol(),
+                    "targetPrice", alert.getTargetPrice(),
+                    "currentPrice", alert.getCurrentPrice(),
+                    "alertType", alert.getAlertType().name(),
+                    "timestamp", LocalDateTime.now().toString() // timestamp를 data 맵에 추가
+                ))
+                .build();
+
+            sendNotificationToUser(userId, notification);
+            log.info("가격 알림 웹소켓 전송 완료 - 사용자: {}, 코인: {}", userId, alert.getSymbol());
+        } catch (Exception e) {
+            // 알림 전송 실패가 알림 처리 전체를 실패시키지 않도록 예외 처리
+            log.error("가격 알림 웹소켓 전송 실패 - 사용자: {}, 코인: {}", userId, alert.getSymbol(), e);
+        }
+    }
+
+    /**
+     * 웹소켓을 통해 사용자에게 알림을 전송합니다.
+     */
+    private void sendNotificationToUser(Long userId, Notification notification) {
+        try {
+            notificationWebSocketHandler.sendNotification(userId, notification);
+        } catch (Exception e) {
+            log.error("알림 전송 실패: {}", e.getMessage());
+        }
     }
 }

@@ -846,7 +846,7 @@ public class TransactionService {
      * 헬퍼 메서드들
      */
     private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
+        return userRepository.findById(Long.parseLong(username))
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다: " + username));
     }
 

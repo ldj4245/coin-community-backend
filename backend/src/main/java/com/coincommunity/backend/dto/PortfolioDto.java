@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -27,6 +29,7 @@ public class PortfolioDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "포트폴리오 생성 요청")
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class CreateRequest {
         
         @NotBlank(message = "포트폴리오 이름은 필수입니다")

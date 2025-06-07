@@ -65,7 +65,7 @@ public class PostController {
         } else {
             postSummaryPage = postService.getAllPosts(pageable);
         }
-        Page<PostDto.SummaryResponse> page = postSummaryPage.map(postSummary -> (PostDto.SummaryResponse) postSummary);
+        Page<PostDto.SummaryResponse> page = postSummaryPage.map(PostDto.SummaryResponse::new);
         
         return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(PageResponse.from(page)));
     }
@@ -94,7 +94,7 @@ public class PostController {
         }
         
         PostDto.PostResponse postResponse = postService.getPostDetail(id, userId);
-        PostDto.DetailResponse response = (PostDto.DetailResponse) postResponse;
+        PostDto.DetailResponse response = new PostDto.DetailResponse(postResponse);
         return ResponseEntity.ok(com.coincommunity.backend.dto.ApiResponse.success(response));
     }
 
@@ -120,7 +120,7 @@ public class PostController {
         
         Long userId = Long.parseLong(userDetails.getUsername());
         PostDto.PostResponse postResponse = postService.createPost(request, userId);
-        PostDto.DetailResponse response = (PostDto.DetailResponse) postResponse;
+        PostDto.DetailResponse response = new PostDto.DetailResponse(postResponse);
         
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
@@ -151,7 +151,7 @@ public class PostController {
         
         Long userId = Long.parseLong(userDetails.getUsername());
         PostDto.PostResponse postResponse = postService.updatePost(id, request, userId);
-        PostDto.DetailResponse response = (PostDto.DetailResponse) postResponse;
+        PostDto.DetailResponse response = new PostDto.DetailResponse(postResponse);
         
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -201,7 +201,7 @@ public class PostController {
         
         List<PostDto.PostSummaryResponse> postSummaryList = postService.getPopularPosts(limit);
         List<PostDto.SummaryResponse> posts = postSummaryList.stream()
-                .map(postSummary -> (PostDto.SummaryResponse) postSummary)
+                .map(PostDto.SummaryResponse::new)
                 .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(posts));
     }
@@ -224,7 +224,7 @@ public class PostController {
         
         List<PostDto.PostSummaryResponse> postSummaryList = postService.getRecentPosts(limit);
         List<PostDto.SummaryResponse> posts = postSummaryList.stream()
-                .map(postSummary -> (PostDto.SummaryResponse) postSummary)
+                .map(PostDto.SummaryResponse::new)
                 .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(posts));
     }
@@ -248,7 +248,7 @@ public class PostController {
             @PageableDefault(size = 10) Pageable pageable) {
         
         Page<PostDto.PostSummaryResponse> postSummaryPage = postService.searchPosts(keyword, pageable);
-        Page<PostDto.SummaryResponse> page = postSummaryPage.map(postSummary -> (PostDto.SummaryResponse) postSummary);
+        Page<PostDto.SummaryResponse> page = postSummaryPage.map(PostDto.SummaryResponse::new);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(page)));
     }
 }

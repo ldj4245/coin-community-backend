@@ -4,14 +4,12 @@ import com.coincommunity.backend.dto.NotificationDto;
 import com.coincommunity.backend.dto.WebSocketDto;
 import com.coincommunity.backend.entity.Notification;
 import com.coincommunity.backend.entity.NotificationPreference;
-import com.coincommunity.backend.entity.NotificationStatistics;
 import com.coincommunity.backend.entity.Transaction;
 import com.coincommunity.backend.entity.PortfolioItem;
 import com.coincommunity.backend.entity.CoinPrice;
 import com.coincommunity.backend.entity.User;
 import com.coincommunity.backend.repository.CoinWatchlistRepository;
 import com.coincommunity.backend.repository.NotificationPreferenceRepository;
-import com.coincommunity.backend.repository.NotificationStatisticsRepository;
 import com.coincommunity.backend.repository.NotificationRepository;
 import com.coincommunity.backend.repository.UserRepository;
 import com.coincommunity.backend.exception.ResourceNotFoundException;
@@ -70,7 +68,6 @@ public class RealtimeNotificationService {
     private final UserRepository userRepository;
     private final CoinWatchlistRepository coinWatchlistRepository;
     private final NotificationPreferenceRepository notificationPreferenceRepository;
-    private final NotificationStatisticsRepository notificationStatisticsRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${app.notification.price-threshold:5.0}")
@@ -828,32 +825,12 @@ public class RealtimeNotificationService {
     }
 
     /**
-     * 전송 방법별 통계 업데이트
+     * 전송 방법별 통계 업데이트 (간단한 로깅으로 대체)
      */
     private void updateNotificationStatsByMethod(String type, String method, boolean success, LocalDateTime hour) {
         try {
-            Optional<NotificationStatistics> existingStats = notificationStatisticsRepository
-                    .findByNotificationTypeAndDeliveryMethodAndDateHour(type, method, hour);
-            
-            NotificationStatistics stats;
-            if (existingStats.isPresent()) {
-                stats = existingStats.get();
-            } else {
-                stats = NotificationStatistics.builder()
-                        .notificationType(type)
-                        .deliveryMethod(method)
-                        .dateHour(hour)
-                        .build();
-            }
-            
-            if (success) {
-                stats.incrementSuccess();
-            } else {
-                stats.incrementFailure();
-            }
-            
-            notificationStatisticsRepository.save(stats);
-            
+            // NotificationStatistics 엔티티 제거로 인해 간단한 로깅으로 대체
+            log.debug("알림 통계: 타입={}, 방법={}, 성공={}, 시간={}", type, method, success, hour);
         } catch (Exception e) {
             log.warn("통계 업데이트 실패: 타입={}, 방법={}", type, method, e);
         }

@@ -18,9 +18,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 /**
- * 코인 가격 정보를 주기적으로 업데이트하는 스케줄러
+ * 코인 가격 정보를 주기적으로 업데이트하는 스케줄러 (성능 최적화)
  */
 @Slf4j
 @Component
@@ -42,150 +45,32 @@ public class CoinPriceScheduler {
     private static final String COINGECKO_EXCHANGE = "COINGECKO";
     
     /**
-     * 1분마다 코인 가격 정보를 업데이트합니다.
-     * 하이브리드 전략:
-     * - 주요 코인: 모든 거래소의 데이터 저장
-     * - 기타 코인: CoinGecko 데이터만 저장
+     * 3분마다 코인 가격 정보를 업데이트합니다. (주기 조정으로 API 부하 감소)
+     * 병렬 처리를 통한 성능 최적화 적용
      */
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 180000) // 3분으로 변경
     public void updateCoinPrices() {
         try {
             log.debug("코인 가격 정보 업데이트 시작");
             List<CoinPrice> allCoinPrices = new ArrayList<>();
 
-            // 주요 코인 목록 가져오기
-            List<ExchangePriceDto> allPrices = new ArrayList<>();
+            // 병렬로 데이터 수집
+            List<ExchangePriceDto> allPrices = collectAllPricesInParallel();
 
-            // 국내 거래소별 데이터 수집 현황 로깅
-            log.info("===== 거래소별 데이터 수집 시작 =====");
+            // 데이터 변환 및 저장
+            if (!allPrices.isEmpty()) {
+                allCoinPrices = convertToCoinPrices(allPrices);
 
-            // 업비트 데이터 수집
-            try {
-                List<ExchangePriceDto> upbitPrices = exchangeApiStrategyContext.getAllCoinPrices("UPBIT");
-                log.info("업비트에서 {}개 코인 데이터 수집됨", upbitPrices.size());
-                allPrices.addAll(upbitPrices);
-            } catch (Exception e) {
-                log.error("업비트 데이터 수집 중 오류 발생", e);
-            }
+                // 통계 로깅 (INFO 레벨 유지하되 간소화)
+                logDataStatistics(allCoinPrices);
 
-            // 빗썸 데이터 수집
-            try {
-                List<ExchangePriceDto> bithumbPrices = exchangeApiStrategyContext.getAllCoinPrices("BITHUMB");
-                log.info("빗썸에서 {}개 코인 데이터 수집됨", bithumbPrices.size());
-                allPrices.addAll(bithumbPrices);
-            } catch (Exception e) {
-                log.error("빗썸 데이터 수집 중 오류 발생", e);
-            }
-
-            // 코인원 데이터 수집
-            try {
-                List<ExchangePriceDto> coinonePrices = exchangeApiStrategyContext.getAllCoinPrices("COINONE");
-                log.info("코인원에서 {}개 코인 데이터 수집됨", coinonePrices.size());
-                allPrices.addAll(coinonePrices);
-            } catch (Exception e) {
-                log.error("코인원 데이터 수집 중 오류 발생", e);
-            }
-
-            // 코빗 데이터 수집
-            try {
-                List<ExchangePriceDto> korbitPrices = exchangeApiStrategyContext.getAllCoinPrices("KORBIT");
-                log.info("코빗에서 {}개 코인 데이터 수집됨", korbitPrices.size());
-                allPrices.addAll(korbitPrices);
-            } catch (Exception e) {
-                log.error("코빗 데이터 수집 중 오류 발생", e);
-            }
-
-            // 1. 국내 거래소에서 데이터 수집 (기존 코드는 주석 처리)
-            /*
-            if (enableDomestic) {
-                try {
-                    // 주요 코인 포함 상위 50개 코인 가져오기
-                    List<ExchangePriceDto> domesticPrices = exchangeApiStrategyContext.getTopCoinsByMarketCap(50);
-
-                    // 하이브리드 전략 적용: 주요 코인은 모든 거래소 데이터 저장, 기타 코인은 필터링
-                    for (ExchangePriceDto price : domesticPrices) {
-                        String coinId = price.getSymbol();
-                        String exchange = price.getExchangeName();
-
-                        // 주요 코인이거나 코인게코 데이터인 경우만 저장
-                        if (majorCoinService.isMajorCoin(coinId) || COINGECKO_EXCHANGE.equals(exchange)) {
-                            allPrices.add(price);
-                        }
-                    }
-
-                    log.debug("국내 거래소에서 {}개 코인 가격 정보 수집", domesticPrices.size());
-                } catch (Exception e) {
-                    log.error("국내 거래소 API 호출 중 오류 발생", e);
-                }
-            }
-            */
-
-            // 2. 해외 거래소에서 데이터 수집
-            if (enableForeign) {
-                try {
-                    // 주요 코인들에 대해 모든 거래소 데이터 수집
-                    for (String majorCoin : majorCoinService.getMajorCoins()) {
-                        try {
-                            List<ExchangePriceDto> foreignPrices = exchangeApiStrategyContext.getForeignExchangePrices(majorCoin);
-                            allPrices.addAll(foreignPrices);
-                        } catch (Exception e) {
-                            log.error("해외 거래소 API에서 {}코인 데이터 수집 중 오류 발생", majorCoin, e);
-                        }
-                    }
-
-                    log.debug("해외 거래소에서 주요 코인들의 가격 정보 수집 완료");
-                } catch (Exception e) {
-                    log.error("해외 거래소 API 호출 중 오류 발생", e);
-                }
-            }
-
-            // 3. CoinGecko에서 모든 코인 데이터 수집 (주요 코인 + 기타 코인)
-            try {
-                // 코인게코에서 시가총액 상위 100개 코인 정보 가져오기
-                List<ExchangePriceDto> coingeckoPrices = exchangeApiStrategyContext.getTopCoinsByMarketCap(100);
-                if (coingeckoPrices.isEmpty()) {
-                    log.warn("코인게코에서 시가총액 상위 코인 정보를 가져오지 못했습니다. fallback으로 getAllCoinPrices 시도");
-                    coingeckoPrices = exchangeApiStrategyContext.getAllCoinPrices(COINGECKO_EXCHANGE);
-                }
-
-                // 각 코인이 코인게코 거래소 이름으로 설정되어 있는지 확인
-                for (ExchangePriceDto price : coingeckoPrices) {
-                    if (!COINGECKO_EXCHANGE.equals(price.getExchangeName())) {
-                        price.setExchangeName(COINGECKO_EXCHANGE);
-                        price.setExchangeKoreanName("코인게코");
-                    }
-                }
-
-                log.info("코인게코에서 {}개 코인 데이터 수집됨", coingeckoPrices.size());
-                allPrices.addAll(coingeckoPrices);
-            } catch (Exception e) {
-                log.error("코인게코 API 호출 중 오류 발생", e);
-            }
-
-            log.info("===== 거래소별 데이터 수집 완료 =====");
-
-            // 4. 모든 데이터를 CoinPrice 엔티티로 변환
-            allCoinPrices = convertToCoinPrices(allPrices);
-
-            // 로그 출력으로 데이터 상태 확인
-            log.info("변환된 코인 데이터: 총 {}개", allCoinPrices.size());
-            for (String exchange : majorCoinService.getSupportedExchanges()) {
-                long count = allCoinPrices.stream()
-                    .filter(cp -> exchange.equals(cp.getExchange()))
-                    .count();
-                log.info("{} 거래소 데이터: {}개", exchange, count);
-            }
-
-            // 5. 데이터 저장 및 웹소켓 알림
-            if (!allCoinPrices.isEmpty()) {
+                // 데이터 저장 및 웹소켓 알림
                 List<CoinPrice> savedCoinPrices = coinPriceService.saveAllCoinPrices(allCoinPrices);
                 
-                // WebSocket을 통해 클라이언트에게 실시간 업데이트 전송
-                for (CoinPrice coinPrice : savedCoinPrices) {
-                    coinPriceWebSocketHandler.sendCoinPriceUpdate(coinPrice);
-                }
+                // WebSocket을 통해 클라이언트에게 실시간 업데이트 전송 (배치 처리)
+                sendBatchWebSocketUpdates(savedCoinPrices);
                 
-                log.debug("코인 가격 정보 업데이트 완료: {}개 코인", savedCoinPrices.size());
+                log.info("코인 가격 정보 업데이트 완료: {}개 코인", savedCoinPrices.size());
             } else {
                 log.warn("업데이트할 코인 가격 정보가 없습니다.");
             }
@@ -195,7 +80,116 @@ public class CoinPriceScheduler {
     }
     
     /**
-     * 5분마다 시가총액 기준 상위 코인 정보를 업데이트합니다.
+     * 병렬로 모든 거래소에서 데이터 수집
+     */
+    private List<ExchangePriceDto> collectAllPricesInParallel() {
+        List<CompletableFuture<List<ExchangePriceDto>>> futures = new ArrayList<>();
+        
+        // 1. 국내 거래소 데이터 병렬 수집
+        if (enableDomestic) {
+            String[] domesticExchanges = {"UPBIT", "BITHUMB", "COINONE", "KORBIT"};
+            
+            for (String exchange : domesticExchanges) {
+                CompletableFuture<List<ExchangePriceDto>> future = CompletableFuture
+                    .supplyAsync(() -> {
+                        try {
+                            List<ExchangePriceDto> prices = exchangeApiStrategyContext.getAllCoinPrices(exchange);
+                            log.debug("{}에서 {}개 코인 데이터 수집됨", exchange, prices.size());
+                            return prices;
+                        } catch (Exception e) {
+                            log.error("{} 데이터 수집 중 오류 발생", exchange, e);
+                            return new ArrayList<ExchangePriceDto>();
+                        }
+                    })
+                    .orTimeout(30, java.util.concurrent.TimeUnit.SECONDS);
+                
+                futures.add(future);
+            }
+        }
+        
+        // 2. CoinGecko 데이터 수집 (시가총액 상위 100개)
+        if (enableForeign) {
+            CompletableFuture<List<ExchangePriceDto>> coinGeckoFuture = CompletableFuture
+                .supplyAsync(() -> {
+                    try {
+                        List<ExchangePriceDto> coingeckoPrices = exchangeApiStrategyContext.getTopCoinsByMarketCap(100);
+                        
+                        if (coingeckoPrices.isEmpty()) {
+                            log.warn("코인게코에서 시가총액 상위 코인 정보를 가져오지 못했습니다. fallback 시도");
+                            coingeckoPrices = exchangeApiStrategyContext.getAllCoinPrices(COINGECKO_EXCHANGE);
+                        }
+                        
+                        // 거래소 이름 정규화
+                        coingeckoPrices.forEach(price -> {
+                            if (!COINGECKO_EXCHANGE.equals(price.getExchangeName())) {
+                                price.setExchangeName(COINGECKO_EXCHANGE);
+                                price.setExchangeKoreanName("코인게코");
+                            }
+                        });
+                        
+                        log.debug("코인게코에서 {}개 코인 데이터 수집됨", coingeckoPrices.size());
+                        return coingeckoPrices;
+                    } catch (Exception e) {
+                        log.error("코인게코 API 호출 중 오류 발생", e);
+                        return new ArrayList<ExchangePriceDto>();
+                    }
+                })
+                .orTimeout(60, java.util.concurrent.TimeUnit.SECONDS); // CoinGecko는 더 긴 타임아웃
+            
+            futures.add(coinGeckoFuture);
+        }
+        
+        // 모든 Future 완료 대기 및 결과 수집
+        List<ExchangePriceDto> allPrices = new ArrayList<>();
+        
+        for (CompletableFuture<List<ExchangePriceDto>> future : futures) {
+            try {
+                List<ExchangePriceDto> prices = future.join();
+                allPrices.addAll(prices);
+            } catch (CompletionException e) {
+                log.error("데이터 수집 중 타임아웃 또는 오류 발생", e.getCause());
+            }
+        }
+        
+        log.info("총 {}개 코인 데이터 수집 완료", allPrices.size());
+        return allPrices;
+    }
+    
+    /**
+     * 데이터 통계 로깅
+     */
+    private void logDataStatistics(List<CoinPrice> allCoinPrices) {
+        log.info("변환된 코인 데이터: 총 {}개", allCoinPrices.size());
+        
+        Map<String, Long> exchangeStats = allCoinPrices.stream()
+            .collect(Collectors.groupingBy(CoinPrice::getExchange, Collectors.counting()));
+        
+        exchangeStats.forEach((exchange, count) -> 
+            log.info("{} 거래소 데이터: {}개", exchange, count));
+    }
+    
+    /**
+     * 배치 WebSocket 업데이트 전송
+     */
+    private void sendBatchWebSocketUpdates(List<CoinPrice> savedCoinPrices) {
+        try {
+            // 주요 코인만 실시간 업데이트 (성능 최적화)
+            List<CoinPrice> majorCoinPrices = savedCoinPrices.stream()
+                .filter(cp -> majorCoinService.isMajorCoin(cp.getCoinId()))
+                .collect(Collectors.toList());
+            
+            for (CoinPrice coinPrice : majorCoinPrices) {
+                coinPriceWebSocketHandler.sendCoinPriceUpdate(coinPrice);
+            }
+            
+            log.debug("주요 코인 {}개에 대한 WebSocket 업데이트 전송 완료", majorCoinPrices.size());
+        } catch (Exception e) {
+            log.error("WebSocket 업데이트 전송 중 오류 발생", e);
+        }
+    }
+    
+    /**
+     * 5분마다 시가총액 기준 상위 코인 정보를 업데이트합니다. (캐시 갱신용)
      */
     @Scheduled(fixedRate = 300000)
     public void updateTopMarketCapCoins() {
@@ -205,23 +199,35 @@ public class CoinPriceScheduler {
         
         try {
             log.debug("시가총액 상위 코인 정보 업데이트 시작");
-            List<ExchangePriceDto> topCoins = exchangeApiStrategyContext.getTopCoinsByMarketCap(100);
             
-            if (!topCoins.isEmpty()) {
-                List<CoinPrice> coinPrices = convertToCoinPrices(topCoins);
-                coinPriceService.saveAllCoinPrices(coinPrices);
-                log.debug("시가총액 상위 코인 정보 업데이트 완료: {}개 코인", topCoins.size());
-            }
+            // 비동기로 처리하여 메인 스케줄러에 영향 주지 않음
+            CompletableFuture.runAsync(() -> {
+                try {
+                    List<ExchangePriceDto> topCoins = exchangeApiStrategyContext.getTopCoinsByMarketCap(100);
+                    
+                    if (!topCoins.isEmpty()) {
+                        List<CoinPrice> coinPrices = convertToCoinPrices(topCoins);
+                        coinPriceService.saveAllCoinPrices(coinPrices);
+                        log.debug("시가총액 상위 코인 정보 업데이트 완료: {}개 코인", topCoins.size());
+                    }
+                } catch (Exception e) {
+                    log.error("시가총액 상위 코인 정보 업데이트 중 오류 발생", e);
+                }
+            });
+            
         } catch (Exception e) {
-            log.error("시가총액 상위 코인 정보 업데이트 중 오류 발생", e);
+            log.error("시가총액 상위 코인 업데이트 스케줄러 시작 중 오류 발생", e);
         }
     }
     
     /**
-     * ExchangePriceDto 리스트를 CoinPrice 리스트로 변환
+     * ExchangePriceDto 리스트를 CoinPrice 리스트로 변환 (최적화)
      */
     private List<CoinPrice> convertToCoinPrices(List<ExchangePriceDto> prices) {
-        List<CoinPrice> coinPrices = new ArrayList<>();
+        if (prices == null || prices.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
         LocalDateTime now = LocalDateTime.now();
 
         // 중복 제거를 위한 Map (Symbol-Exchange를 키로 사용)
@@ -229,91 +235,68 @@ public class CoinPriceScheduler {
 
         // 중복 데이터 제거 - 동일한 코인과 거래소 조합이 있을 경우 마지막 데이터만 유지
         for (ExchangePriceDto price : prices) {
-            String key = price.getSymbol() + "-" + price.getExchangeName();
-            uniquePrices.put(key, price);
+            if (price != null && price.getSymbol() != null && price.getExchangeName() != null) {
+                String key = price.getSymbol() + "-" + price.getExchangeName();
+                uniquePrices.put(key, price);
+            }
         }
 
-        log.info("총 코인 데이터: {}, 중복 제거 후: {}", prices.size(), uniquePrices.size());
+        log.debug("총 코인 데이터: {}, 중복 제거 후: {}", prices.size(), uniquePrices.size());
 
-        // 중복이 제거된 데이터만 처리
-        for (ExchangePriceDto price : uniquePrices.values()) {
-            CoinPrice coinPrice = new CoinPrice();
-            coinPrice.setCoinId(price.getSymbol());
-            coinPrice.setExchange(price.getExchangeName());
-            coinPrice.setCurrentPrice(price.getCurrentPrice());
-            coinPrice.setPriceChangePercent(price.getChangeRate());
-            coinPrice.setVolume24h(price.getVolume24h() != null ? price.getVolume24h() : BigDecimal.ZERO);
-            coinPrice.setMarketCap(price.getTradeValue24h() != null ? price.getTradeValue24h() : BigDecimal.ZERO);
-            coinPrice.setLastUpdated(now);
-
-            // 필수 필드인 한글명, 영어명 설정
-            coinPrice.setKoreanName(price.getKoreanName() != null ? price.getKoreanName() : price.getSymbol());
-            coinPrice.setEnglishName(price.getSymbol());
-
-            // 추가 필드 설정
-            if (price.getHighPrice24h() != null) {
-                coinPrice.setHighPrice24h(price.getHighPrice24h());
-            }
-            if (price.getLowPrice24h() != null) {
-                coinPrice.setLowPrice24h(price.getLowPrice24h());
-            }
-
-            coinPrices.add(coinPrice);
-        }
-
-        return coinPrices;
+        // 스트림을 사용한 효율적인 변환
+        return uniquePrices.values().stream()
+            .map(this::convertToCoinPrice)
+            .filter(coinPrice -> coinPrice != null)
+            .peek(coinPrice -> coinPrice.setLastUpdated(now))
+            .collect(Collectors.toList());
     }
     
     /**
-     * ExchangePriceDto를 CoinPrice로 변환
+     * ExchangePriceDto를 CoinPrice로 변환 (유효성 검사 강화)
      */
     private CoinPrice convertToCoinPrice(ExchangePriceDto dto) {
         try {
             // 필수 필드 검증
-            if (dto.getSymbol() == null || dto.getSymbol().isEmpty()) {
-                log.warn("코인 심볼이 비어있어 변환을 건너뜁니다: {}", dto);
+            if (dto == null) {
+                return null;
+            }
+            
+            if (dto.getSymbol() == null || dto.getSymbol().trim().isEmpty()) {
+                log.debug("코인 심볼이 비어있어 변환을 건너뜁니다");
                 return null;
             }
 
-            if (dto.getExchangeName() == null || dto.getExchangeName().isEmpty()) {
-                log.warn("거래소 이름이 비어있어 변환을 건너뜁니다. 코인: {}", dto.getSymbol());
+            if (dto.getExchangeName() == null || dto.getExchangeName().trim().isEmpty()) {
+                log.debug("거래소 이름이 비어있어 변환을 건너뜁니다. 코인: {}", dto.getSymbol());
                 return null;
             }
 
-            if (dto.getCurrentPrice() == null) {
-                log.warn("현재 가격이 null이어서 변환을 건너뜁니다. 코인: {}, 거래소: {}", 
+            if (dto.getCurrentPrice() == null || dto.getCurrentPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                log.debug("현재 가격이 유효하지 않아 변환을 건너뜁니다. 코인: {}, 거래소: {}", 
                     dto.getSymbol(), dto.getExchangeName());
                 return null;
             }
 
             CoinPrice coinPrice = new CoinPrice();
-            coinPrice.setCoinId(dto.getSymbol());
-            coinPrice.setExchange(dto.getExchangeName());
+            coinPrice.setCoinId(dto.getSymbol().trim().toUpperCase());
+            coinPrice.setExchange(dto.getExchangeName().trim());
 
             // 한글 이름 설정 (없으면 영문 이름으로 대체)
-            if (dto.getKoreanName() != null && !dto.getKoreanName().isEmpty()) {
-                coinPrice.setKoreanName(dto.getKoreanName());
-            } else {
-                coinPrice.setKoreanName(dto.getSymbol());
-            }
+            coinPrice.setKoreanName(dto.getKoreanName() != null && !dto.getKoreanName().trim().isEmpty() 
+                ? dto.getKoreanName().trim() : dto.getSymbol().trim());
 
-            coinPrice.setEnglishName(dto.getSymbol());
+            coinPrice.setEnglishName(dto.getSymbol().trim());
             coinPrice.setCurrentPrice(dto.getCurrentPrice());
-            coinPrice.setPriceChangePercent(dto.getChangeRate());
-            coinPrice.setVolume24h(dto.getVolume24h());
+            
+            // null 안전 처리
+            coinPrice.setPriceChangePercent(dto.getChangeRate() != null ? dto.getChangeRate() : BigDecimal.ZERO);
+            coinPrice.setVolume24h(dto.getVolume24h() != null ? dto.getVolume24h() : BigDecimal.ZERO);
             coinPrice.setHighPrice24h(dto.getHighPrice24h());
             coinPrice.setLowPrice24h(dto.getLowPrice24h());
 
-            // 시가총액 설정 (없으면 0으로 설정)
-            if (dto.getTradeValue24h() != null) {
-                coinPrice.setMarketCap(dto.getTradeValue24h());
-            } else {
-                coinPrice.setMarketCap(BigDecimal.ZERO);
-            }
+            // 시가총액 설정
+            coinPrice.setMarketCap(dto.getTradeValue24h() != null ? dto.getTradeValue24h() : BigDecimal.ZERO);
 
-            coinPrice.setLastUpdated(LocalDateTime.now());
-
-            log.debug("코인 변환 성공: {} ({})", coinPrice.getCoinId(), coinPrice.getExchange());
             return coinPrice;
         } catch (Exception e) {
             log.error("ExchangePriceDto를 CoinPrice로 변환 실패: {}", 

@@ -1,13 +1,17 @@
 package com.coincommunity.backend.controller;
 
 import com.coincommunity.backend.dto.ApiResponse;
+import com.coincommunity.backend.service.UserScoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,58 +24,98 @@ import java.util.Map;
 @Slf4j
 public class UserScoreController {
     
+    private final UserScoreService userScoreService;
+    
     /**
-     * 사용자 점수 조회
+     * 내 점수 조회
      */
-    @GetMapping("/{userId}")
-    @Operation(summary = "사용자 점수 조회", description = "특정 사용자의 점수와 레벨 정보를 조회합니다.")
+    @GetMapping("/my")
+    @Operation(summary = "내 점수 조회", description = "로그인한 사용자의 점수와 레벨 정보를 조회합니다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserScore(@PathVariable Long userId) {
-        log.info("사용자 점수 조회 요청: userId={}", userId);
+    public ResponseEntity<ApiResponse<Object>> getMyScore(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("내 점수 조회 요청: 사용자={}", userDetails.getUsername());
         
         try {
-            // TODO: 실제 점수 조회 로직 구현
-            Map<String, Object> scoreInfo = Map.of(
-                "userId", userId,
-                "totalScore", 1250,
-                "level", 5,
-                "nextLevelScore", 1500,
-                "rank", 127
-            );
-            
+            Object scoreInfo = userScoreService.getUserScore(userDetails.getUsername());
             return ResponseEntity.ok(ApiResponse.success(scoreInfo));
         } catch (Exception e) {
-            log.error("사용자 점수 조회 중 오류 발생: userId={}", userId, e);
+            log.error("내 점수 조회 중 오류 발생: 사용자={}", userDetails.getUsername(), e);
             return ResponseEntity.internalServerError()
                 .body(ApiResponse.error("점수 조회 중 오류가 발생했습니다."));
         }
     }
     
     /**
-     * 점수 랭킹 조회
+     * 상위 사용자 조회
      */
-    @GetMapping("/ranking")
-    @Operation(summary = "점수 랭킹 조회", description = "전체 사용자 점수 랭킹을 조회합니다.")
+    @GetMapping("/top")
+    @Operation(summary = "상위 사용자 조회", description = "점수 상위 사용자 목록을 조회합니다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    public ResponseEntity<ApiResponse<Object>> getScoreRanking(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        log.info("점수 랭킹 조회 요청: page={}, size={}", page, size);
+    public ResponseEntity<ApiResponse<Object>> getTopUsers(
+            @RequestParam(defaultValue = "10") int limit) {
+        log.info("상위 사용자 조회 요청: limit={}", limit);
         
         try {
-            // TODO: 실제 랭킹 조회 로직 구현
-            return ResponseEntity.ok(ApiResponse.success("랭킹 조회 기능 구현 예정"));
+            Object topUsers = userScoreService.getTopUsers(limit);
+            return ResponseEntity.ok(ApiResponse.success(topUsers));
         } catch (Exception e) {
-            log.error("점수 랭킹 조회 중 오류 발생", e);
+            log.error("상위 사용자 조회 중 오류 발생", e);
             return ResponseEntity.internalServerError()
-                .body(ApiResponse.error("랭킹 조회 중 오류가 발생했습니다."));
+                .body(ApiResponse.error("상위 사용자 조회 중 오류가 발생했습니다."));
+        }
+    }
+    
+    /**
+     * 레벨 시스템 정보 조회
+     */
+    @GetMapping("/levels")
+    @Operation(summary = "레벨 시스템 정보", description = "레벨 시스템 정보를 조회합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    public ResponseEntity<ApiResponse<Object>> getLevelSystem() {
+        log.info("레벨 시스템 정보 조회 요청");
+        
+        try {
+            Object levelSystem = userScoreService.getLevelSystem();
+            return ResponseEntity.ok(ApiResponse.success(levelSystem));
+        } catch (Exception e) {
+            log.error("레벨 시스템 정보 조회 중 오류 발생", e);
+            return ResponseEntity.internalServerError()
+                .body(ApiResponse.error("레벨 시스템 정보 조회 중 오류가 발생했습니다."));
+        }
+    }
+    
+    /**
+     * 내 성취도 조회
+     */
+    @GetMapping("/my/achievements")
+    @Operation(summary = "내 성취도 조회", description = "로그인한 사용자의 성취도를 조회합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    public ResponseEntity<ApiResponse<Object>> getMyAchievements(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("내 성취도 조회 요청: 사용자={}", userDetails.getUsername());
+        
+        try {
+            Object achievements = userScoreService.getUserAchievements(userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.success(achievements));
+        } catch (Exception e) {
+            log.error("내 성취도 조회 중 오류 발생: 사용자={}", userDetails.getUsername(), e);
+            return ResponseEntity.internalServerError()
+                .body(ApiResponse.error("성취도 조회 중 오류가 발생했습니다."));
         }
     }
 }

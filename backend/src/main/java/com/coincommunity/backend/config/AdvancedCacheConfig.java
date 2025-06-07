@@ -180,6 +180,71 @@ public class AdvancedCacheConfig {
     }
 
     /**
+     * TTL 기반 캐시 매니저
+     * 특정 시간이 지나면 자동으로 만료되는 캐시 데이터 관리
+     * API 호출 결과와 같이 TTL이 중요한 데이터에 사용
+     */
+    @Bean(name = "ttlCacheManager")
+    public CacheManager ttlCacheManager(RedisConnectionFactory connectionFactory) {
+        // JSON 직렬화 설정
+        ObjectMapper objectMapper = createOptimizedObjectMapper();
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+
+        // 기본 TTL 설정 (3분으로 단축 - 스케줄러와 동기화)
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(3))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer))
+                .disableCachingNullValues()
+                .computePrefixWith(cacheName -> "coin-community:ttl:" + cacheName + ":");
+
+        // 캐시별 TTL 설정 최적화
+        Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
+
+        // 코인게코 API 결과 (3분으로 단축 - 스케줄러와 동기화)
+        cacheConfigurations.put("coinGeckoAllPrices", defaultConfig.entryTtl(Duration.ofMinutes(3)));
+        cacheConfigurations.put("coinGeckoPrice", defaultConfig.entryTtl(Duration.ofMinutes(3)));
+        cacheConfigurations.put("coinGeckoTopCoins", defaultConfig.entryTtl(Duration.ofMinutes(3)));
+        cacheConfigurations.put("coinGeckoTopPrices", defaultConfig.entryTtl(Duration.ofMinutes(3)));
+
+        // 업비트 API 결과 (2분으로 단축 - 더 자주 업데이트)
+        cacheConfigurations.put("upbitMarkets", defaultConfig.entryTtl(Duration.ofMinutes(2)));
+        cacheConfigurations.put("upbitTickers", defaultConfig.entryTtl(Duration.ofMinutes(2)));
+
+        // 바이낸스 API 결과 추가 (2분)
+        cacheConfigurations.put("binanceAllPrices", defaultConfig.entryTtl(Duration.ofMinutes(2)));
+        cacheConfigurations.put("binancePrice", defaultConfig.entryTtl(Duration.ofMinutes(2)));
+
+        // 거래소 비교 결과 (5분)
+        cacheConfigurations.put("exchangePrices", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("domesticExchangePrices", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("foreignExchangePrices", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        cacheConfigurations.put("exchangeComparison", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+
+        // 코인 분석 결과 (15분)
+        cacheConfigurations.put("coinAnalysis", defaultConfig.entryTtl(Duration.ofMinutes(15)));
+
+        // 트렌딩 코인 (10분)
+        cacheConfigurations.put("trendingCoins", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+
+        // 뉴스 데이터 (10분)
+        cacheConfigurations.put("newsData", defaultConfig.entryTtl(Duration.ofMinutes(10)));
+
+        // 시가총액 상위 코인 (5분)
+        cacheConfigurations.put("topCoinsByMarketCap", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+
+        RedisCacheManager ttlCacheManager = RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(defaultConfig)
+                .withInitialCacheConfigurations(cacheConfigurations)
+                .transactionAware()
+                .build();
+
+        log.info("TTL 기반 Redis 캐시 매니저 초기화 완료 - 캐시 수: {}, 기본 TTL: 3분", cacheConfigurations.size());
+
+        return ttlCacheManager;
+    }
+
+    /**
      * 성능 최적화된 ObjectMapper 생성
      */
     private ObjectMapper createOptimizedObjectMapper() {

@@ -8,6 +8,7 @@ import com.coincommunity.backend.exception.ResourceNotFoundException;
 import com.coincommunity.backend.repository.UserRepository;
 import com.coincommunity.backend.repository.PostRepository;
 import com.coincommunity.backend.repository.CommentRepository;
+import com.coincommunity.backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,7 @@ public class UserService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
     
     /**
      * 사용자 ID로 사용자를 조회합니다.
@@ -105,15 +107,10 @@ public class UserService {
             throw new BadCredentialsException("비활성화된 계정입니다.");
         }
         
-        // JWT 토큰 생성은 별도 서비스에서 처리
-        UserDto.AuthResponse authResponse = UserDto.AuthResponse.builder()
-                .accessToken("temporary-token") // 실제로는 JWT 서비스에서 생성
-                .tokenType("Bearer")
-                .user(UserDto.UserResponse.from(user))
-                .build();
+        // JWT 토큰 생성
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId());
         
-        // AuthResponse를 LoginResponse로 캐스팅
-        return (UserDto.LoginResponse) authResponse;
+        return new UserDto.LoginResponse(accessToken, "Bearer", UserDto.UserResponse.from(user));
     }
     
     /**

@@ -6,12 +6,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -24,12 +26,36 @@ import java.util.stream.Collectors;
 public class ExchangeApiStrategyContext {
     
     private final ExchangeApiStrategyFactory strategyFactory;
-    private final Executor asyncExecutor = Executors.newFixedThreadPool(10);
     
+    // 성능 최적화를 위한 전용 스레드 풀
+    private Executor asyncExecutor;
+    
+    // 타임아웃 설정 (초)
+    private static final int API_TIMEOUT_SECONDS = 10;
+    private static final int BATCH_TIMEOUT_SECONDS = 30;
+    
+    @PostConstruct
+    public void init() {
+        // 더 효율적인 스레드 풀 설정
+        this.asyncExecutor = Executors.newFixedThreadPool(5, r -> {
+            Thread t = new Thread(r, "exchange-api-worker");
+            t.setDaemon(true);
+            return t;
+        });
+        
+        logRegisteredStrategies();
+    }
+    
+    @PreDestroy
+    public void cleanup() {
+        if (asyncExecutor instanceof java.util.concurrent.ExecutorService) {
+            ((java.util.concurrent.ExecutorService) asyncExecutor).shutdown();
+        }
+    }
+
     /**
      * 초기화 시 등록된 전략들 확인
      */
-    @PostConstruct
     public void logRegisteredStrategies() {
         List<ExchangeApiStrategy> allStrategies = strategyFactory.getAllStrategies();
         log.info("=== 등록된 거래소 API 전략 목록 ===");
@@ -48,19 +74,29 @@ public class ExchangeApiStrategyContext {
      * 특정 거래소에서 코인 가격 조회
      */
     public Optional<ExchangePriceDto> getCoinPrice(String exchangeName, String symbol) {
-        log.info("거래소별 코인 가격 조회 요청 - 거래소: {}, 심볼: {}", exchangeName, symbol);
+        log.debug("거래소별 코인 가격 조회 요청 - 거래소: {}, 심볼: {}", exchangeName, symbol);
         
         Optional<ExchangeApiStrategy> strategy = strategyFactory.getStrategy(exchangeName);
         
         if (strategy.isPresent()) {
             try {
-                ExchangePriceDto price = strategy.get().getCoinPrice(symbol);
+                // 타임아웃 적용
+                CompletableFuture<ExchangePriceDto> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return strategy.get().getCoinPrice(symbol);
+                    } catch (Exception e) {
+                        log.error("거래소 {} 에서 {} 가격 조회 실패", exchangeName, symbol, e);
+                        return null;
+                    }
+                }, asyncExecutor);
+                
+                ExchangePriceDto price = future.get(API_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (price != null) {
                     log.debug("거래소 {} 에서 {} 가격 조회 성공", exchangeName, symbol);
                     return Optional.of(price);
                 }
             } catch (Exception e) {
-                log.error("거래소 {} 에서 {} 가격 조회 실패", exchangeName, symbol, e);
+                log.error("거래소 {} 에서 {} 가격 조회 타임아웃 또는 오류", exchangeName, symbol, e);
             }
         } else {
             log.warn("지원하지 않는 거래소: {}", exchangeName);
@@ -70,48 +106,51 @@ public class ExchangeApiStrategyContext {
     }
 
     /**
-     * 모든 거래소에서 특정 코인 가격 조회 (병렬 처리)
+     * 모든 거래소에서 특정 코인 가격 조회 (병렬 처리 최적화)
      */
     public List<ExchangePriceDto> getAllExchangePrices(String symbol) {
-        log.info("전체 거래소 코인 가격 조회 요청 - 심볼: {}", symbol);
+        log.debug("전체 거래소 코인 가격 조회 요청 - 심볼: {}", symbol);
         
-        List<ExchangeApiStrategy> strategies = strategyFactory.getAllStrategies();
-        log.info("사용 가능한 전략 수: {}", strategies.size());
-        
-        for (ExchangeApiStrategy strategy : strategies) {
-            log.info("전략 시도: {} ({}), 건강상태: {}", 
-                strategy.getExchangeName(), 
-                strategy.getExchangeType(), 
-                strategy.isHealthy());
+        List<ExchangeApiStrategy> strategies = strategyFactory.getHealthyStrategies(); // 건강한 거래소만 조회
+        if (strategies.isEmpty()) {
+            log.warn("사용 가능한 건강한 거래소가 없습니다");
+            return new ArrayList<>();
         }
         
-        // 병렬로 모든 거래소에서 가격 조회
+        log.debug("사용 가능한 건강한 전략 수: {}", strategies.size());
+        
+        // 병렬로 모든 거래소에서 가격 조회 (타임아웃 적용)
         List<CompletableFuture<ExchangePriceDto>> futures = strategies.stream()
             .map(strategy -> CompletableFuture.supplyAsync(() -> {
                 try {
-                    log.info("거래소 {} 에서 {} 가격 조회 시작", strategy.getExchangeName(), symbol);
+                    log.debug("거래소 {} 에서 {} 가격 조회 시작", strategy.getExchangeName(), symbol);
                     ExchangePriceDto result = strategy.getCoinPrice(symbol);
                     if (result != null) {
-                        log.info("거래소 {} 에서 {} 가격 조회 성공: {}", 
+                        log.debug("거래소 {} 에서 {} 가격 조회 성공: {}", 
                             strategy.getExchangeName(), symbol, result.getCurrentPrice());
-                    } else {
-                        log.warn("거래소 {} 에서 {} 가격 조회 결과가 null", strategy.getExchangeName(), symbol);
                     }
                     return result;
                 } catch (Exception e) {
-                    log.error("거래소 {} 에서 {} 가격 조회 실패", strategy.getExchangeName(), symbol, e);
+                    log.debug("거래소 {} 에서 {} 가격 조회 실패", strategy.getExchangeName(), symbol, e);
                     return null;
                 }
-            }, asyncExecutor))
+            }, asyncExecutor).orTimeout(API_TIMEOUT_SECONDS, TimeUnit.SECONDS))
             .collect(Collectors.toList());
         
-        // 모든 비동기 작업 완료 대기
-        List<ExchangePriceDto> prices = futures.stream()
-            .map(CompletableFuture::join)
-            .filter(price -> price != null)
-            .collect(Collectors.toList());
+        // 모든 비동기 작업 완료 대기 (배치 타임아웃 적용)
+        List<ExchangePriceDto> prices = new ArrayList<>();
+        for (CompletableFuture<ExchangePriceDto> future : futures) {
+            try {
+                ExchangePriceDto price = future.get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                if (price != null) {
+                    prices.add(price);
+                }
+            } catch (Exception e) {
+                log.debug("거래소 가격 조회 타임아웃 또는 오류", e);
+            }
+        }
         
-        log.info("전체 거래소 가격 조회 완료 - 심볼: {}, 조회된 거래소 수: {}/{}", symbol, prices.size(), strategies.size());
+        log.debug("전체 거래소 가격 조회 완료 - 심볼: {}, 조회된 거래소 수: {}/{}", symbol, prices.size(), strategies.size());
         
         // 가격 순으로 정렬 (높은 가격부터)
         return prices.stream()
@@ -123,9 +162,12 @@ public class ExchangeApiStrategyContext {
      * 국내 거래소에서 특정 코인 가격 조회
      */
     public List<ExchangePriceDto> getDomesticExchangePrices(String symbol) {
-        log.info("국내 거래소 코인 가격 조회 요청 - 심볼: {}", symbol);
+        log.debug("국내 거래소 코인 가격 조회 요청 - 심볼: {}", symbol);
         
-        List<ExchangeApiStrategy> domesticStrategies = strategyFactory.getDomesticStrategies();
+        List<ExchangeApiStrategy> domesticStrategies = strategyFactory.getDomesticStrategies()
+            .stream()
+            .filter(ExchangeApiStrategy::isHealthy)
+            .collect(Collectors.toList());
         
         return getExchangePricesFromStrategies(domesticStrategies, symbol);
     }
@@ -134,9 +176,12 @@ public class ExchangeApiStrategyContext {
      * 해외 거래소에서 특정 코인 가격 조회
      */
     public List<ExchangePriceDto> getForeignExchangePrices(String symbol) {
-        log.info("해외 거래소 코인 가격 조회 요청 - 심볼: {}", symbol);
+        log.debug("해외 거래소 코인 가격 조회 요청 - 심볼: {}", symbol);
         
-        List<ExchangeApiStrategy> foreignStrategies = strategyFactory.getForeignStrategies();
+        List<ExchangeApiStrategy> foreignStrategies = strategyFactory.getForeignStrategies()
+            .stream()
+            .filter(ExchangeApiStrategy::isHealthy)
+            .collect(Collectors.toList());
         
         return getExchangePricesFromStrategies(foreignStrategies, symbol);
     }
@@ -145,20 +190,31 @@ public class ExchangeApiStrategyContext {
      * 특정 거래소에서 모든 코인 가격 조회
      */
     public List<ExchangePriceDto> getAllCoinPrices(String exchangeName) {
-        log.info("거래소별 전체 코인 가격 조회 요청 - 거래소: {}", exchangeName);
+        log.debug("거래소별 전체 코인 가격 조회 요청 - 거래소: {}", exchangeName);
         
         Optional<ExchangeApiStrategy> strategy = strategyFactory.getStrategy(exchangeName);
         
-        if (strategy.isPresent()) {
+        if (strategy.isPresent() && strategy.get().isHealthy()) {
             try {
-                List<ExchangePriceDto> prices = strategy.get().getAllCoinPrices();
-                log.info("거래소 {} 전체 코인 가격 조회 완료 - 코인 수: {}", exchangeName, prices.size());
+                // 타임아웃 적용
+                CompletableFuture<List<ExchangePriceDto>> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return strategy.get().getAllCoinPrices();
+                    } catch (Exception e) {
+                        log.error("거래소 {} 전체 코인 가격 조회 실패", exchangeName, e);
+                        return new ArrayList<ExchangePriceDto>();
+                    }
+                }, asyncExecutor);
+                
+                List<ExchangePriceDto> prices = future.get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                log.debug("거래소 {} 전체 코인 가격 조회 완료 - 코인 수: {}", exchangeName, prices.size());
                 return prices;
+                
             } catch (Exception e) {
-                log.error("거래소 {} 전체 코인 가격 조회 실패", exchangeName, e);
+                log.error("거래소 {} 전체 코인 가격 조회 타임아웃 또는 오류", exchangeName, e);
             }
         } else {
-            log.warn("지원하지 않는 거래소: {}", exchangeName);
+            log.warn("지원하지 않거나 건강하지 않은 거래소: {}", exchangeName);
         }
         
         return new ArrayList<>();
@@ -168,33 +224,58 @@ public class ExchangeApiStrategyContext {
      * 시가총액 상위 코인 조회 (모든 거래소 통합)
      */
     public List<ExchangePriceDto> getTopCoinsByMarketCap(int limit) {
-        log.info("시가총액 상위 코인 조회 요청 - 개수: {}", limit);
+        log.debug("시가총액 상위 코인 조회 요청 - 개수: {}", limit);
         
         // CoinGecko를 우선적으로 사용 (시가총액 데이터가 가장 정확)
         Optional<ExchangeApiStrategy> coinGeckoStrategy = strategyFactory.getStrategy("COINGECKO");
         
-        if (coinGeckoStrategy.isPresent()) {
+        if (coinGeckoStrategy.isPresent() && coinGeckoStrategy.get().isHealthy()) {
             try {
-                List<ExchangePriceDto> topCoins = coinGeckoStrategy.get().getTopCoinsByMarketCap(limit);
-                log.info("CoinGecko에서 시가총액 상위 코인 조회 완료 - 코인 수: {}", topCoins.size());
-                return topCoins;
+                // 타임아웃 적용
+                CompletableFuture<List<ExchangePriceDto>> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return coinGeckoStrategy.get().getTopCoinsByMarketCap(limit);
+                    } catch (Exception e) {
+                        log.error("CoinGecko에서 시가총액 상위 코인 조회 실패", e);
+                        return new ArrayList<ExchangePriceDto>();
+                    }
+                }, asyncExecutor);
+                
+                List<ExchangePriceDto> topCoins = future.get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                if (!topCoins.isEmpty()) {
+                    log.debug("CoinGecko에서 시가총액 상위 코인 조회 완료 - 코인 수: {}", topCoins.size());
+                    return topCoins;
+                }
             } catch (Exception e) {
-                log.error("CoinGecko에서 시가총액 상위 코인 조회 실패", e);
+                log.error("CoinGecko에서 시가총액 상위 코인 조회 타임아웃", e);
             }
         }
         
         // CoinGecko 실패 시 다른 거래소에서 조회
-        List<ExchangeApiStrategy> strategies = strategyFactory.getAllStrategies();
+        List<ExchangeApiStrategy> strategies = strategyFactory.getHealthyStrategies();
         
         for (ExchangeApiStrategy strategy : strategies) {
+            if ("COINGECKO".equals(strategy.getExchangeName())) {
+                continue; // 이미 시도했으므로 스킵
+            }
+            
             try {
-                List<ExchangePriceDto> topCoins = strategy.getTopCoinsByMarketCap(limit);
+                CompletableFuture<List<ExchangePriceDto>> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return strategy.getTopCoinsByMarketCap(limit);
+                    } catch (Exception e) {
+                        log.debug("거래소 {}에서 상위 코인 조회 실패", strategy.getExchangeName(), e);
+                        return new ArrayList<ExchangePriceDto>();
+                    }
+                }, asyncExecutor);
+                
+                List<ExchangePriceDto> topCoins = future.get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (!topCoins.isEmpty()) {
-                    log.info("거래소 {}에서 상위 코인 조회 완료 - 코인 수: {}", strategy.getExchangeName(), topCoins.size());
+                    log.debug("거래소 {}에서 상위 코인 조회 완료 - 코인 수: {}", strategy.getExchangeName(), topCoins.size());
                     return topCoins;
                 }
             } catch (Exception e) {
-                log.error("거래소 {}에서 상위 코인 조회 실패", strategy.getExchangeName(), e);
+                log.debug("거래소 {}에서 상위 코인 조회 타임아웃", strategy.getExchangeName(), e);
             }
         }
         
@@ -258,23 +339,37 @@ public class ExchangeApiStrategyContext {
     }
 
     /**
-     * 전략 목록에서 코인 가격 조회 (병렬 처리)
+     * 전략 목록에서 코인 가격 조회 (병렬 처리 최적화)
      */
     private List<ExchangePriceDto> getExchangePricesFromStrategies(List<ExchangeApiStrategy> strategies, String symbol) {
+        if (strategies.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
         List<CompletableFuture<ExchangePriceDto>> futures = strategies.stream()
             .map(strategy -> CompletableFuture.supplyAsync(() -> {
                 try {
                     return strategy.getCoinPrice(symbol);
                 } catch (Exception e) {
-                    log.error("거래소 {} 에서 {} 가격 조회 실패", strategy.getExchangeName(), symbol, e);
+                    log.debug("거래소 {} 에서 {} 가격 조회 실패", strategy.getExchangeName(), symbol, e);
                     return null;
                 }
-            }, asyncExecutor))
+            }, asyncExecutor).orTimeout(API_TIMEOUT_SECONDS, TimeUnit.SECONDS))
             .collect(Collectors.toList());
         
-        return futures.stream()
-            .map(CompletableFuture::join)
-            .filter(price -> price != null)
+        List<ExchangePriceDto> results = new ArrayList<>();
+        for (CompletableFuture<ExchangePriceDto> future : futures) {
+            try {
+                ExchangePriceDto price = future.get(BATCH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                if (price != null) {
+                    results.add(price);
+                }
+            } catch (Exception e) {
+                log.debug("거래소 가격 조회 타임아웃", e);
+            }
+        }
+        
+        return results.stream()
             .sorted((a, b) -> b.getCurrentPrice().compareTo(a.getCurrentPrice()))
             .collect(Collectors.toList());
     }

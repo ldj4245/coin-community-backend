@@ -48,7 +48,7 @@ public class PriceAlert {
     @Column(nullable = false)
     private PriceAlertDto.AlertStatus status;
 
-    @Column
+    @Column(name = "is_repeat", columnDefinition = "bit(1)", nullable = false)
     private boolean repeat;
 
     @Column

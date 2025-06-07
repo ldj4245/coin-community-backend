@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 /**
  * 거래 내역 관련 DTO 클래스
@@ -27,6 +29,7 @@ public class TransactionDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "거래 내역 생성 요청")
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class CreateRequest {
         
         @NotNull(message = "포트폴리오 ID는 필수입니다")
@@ -210,6 +213,7 @@ public class TransactionDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "거래 내역 필터")
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class FilterRequest {
         
         @Schema(description = "코인 심볼", example = "BTC")

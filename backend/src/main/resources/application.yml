@@ -10,13 +10,13 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: false  # SQL 로그 출력 비활성화
+      ddl-auto: update
+    show-sql: false # SQL 로그 출력 비활성화
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: false  # SQL 포맷팅 비활성화
-        use_sql_comments: false  # SQL 주석 비활성화
+        format_sql: false # SQL 포맷팅 비활성화
+        use_sql_comments: false # SQL 주석 비활성화
     defer-datasource-initialization: true
 
   redis:
@@ -34,8 +34,6 @@ spring:
     property-naming-strategy: SNAKE_CASE
     default-property-inclusion: NON_NULL
     time-zone: Asia/Seoul
-
-
 
 jwt:
   secret: Y29pbi1jb21tdW5pdHktYmFja2VuZC1qd3Qtc2VjcmV0LWtleS1mb3ItYXV0aGVudGljYXRpb24tYW5kLWF1dGhvcml6YXRpb24=

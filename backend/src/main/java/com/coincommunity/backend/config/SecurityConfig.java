@@ -59,6 +59,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 인증 없이 접근 가능한 API 설정
                 .requestMatchers("/users/register", "/users/login").permitAll()
+                .requestMatchers("/trending-coins/**").permitAll()
                 .requestMatchers("/news/**", "/coins/**").permitAll()
                 .requestMatchers("/exchange-prices/**").permitAll()
                 .requestMatchers("/kimchi-premium/**").permitAll()
@@ -71,6 +72,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                 .requestMatchers("/swagger-resources/**", "/webjars/**").permitAll()
+                    .requestMatchers("/").permitAll()
                 // 이외 모든 요청은 인증 필요
                 .anyRequest().authenticated()
             )
@@ -98,3 +100,4 @@ public class SecurityConfig {
         return source;
     }
 }
+

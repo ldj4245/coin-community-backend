@@ -142,4 +142,14 @@ public class Portfolio extends BaseTimeEntity {
     public BigDecimal getTotalInvestment() {
         return this.totalInvestment != null ? this.totalInvestment : BigDecimal.ZERO;
     }
+    
+    /**
+     * 사용자와의 관계 설정
+     */
+    public void addToUser(User user) {
+        this.user = user;
+        if (user != null && !user.getPortfolios().contains(this)) {
+            user.getPortfolios().add(this);
+        }
+    }
 }
