@@ -23,6 +23,7 @@ import lombok.NoArgsConstructor;
 public class ApiResponse<T> {
     private boolean success;
     private String message;
+    private String errorCode;
     private T data;
     
     /**
@@ -31,7 +32,7 @@ public class ApiResponse<T> {
      * @return 성공 응답 객체
      */
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "성공적으로 처리되었습니다.", data);
+        return new ApiResponse<>(true, "성공적으로 처리되었습니다.", null, data);
     }
 
     /**
@@ -41,7 +42,7 @@ public class ApiResponse<T> {
      * @return 성공 응답 객체
      */
     public static <T> ApiResponse<T> successWithMessage(String message, T data) {
-        return new ApiResponse<>(true, message, data);
+        return new ApiResponse<>(true, message, null, data);
     }
 
     /**
@@ -50,7 +51,7 @@ public class ApiResponse<T> {
      * @return 성공 응답 객체
      */
     public static ApiResponse<Void> successMessage(String message) {
-        return new ApiResponse<>(true, message, null);
+        return new ApiResponse<>(true, message, null, null);
     }
     
     /**
@@ -59,16 +60,24 @@ public class ApiResponse<T> {
      * @return 오류 응답 객체
      */
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null);
+        return new ApiResponse<>(false, message, null, null);
     }
     
+    /**
+     * 오류 응답을 생성합니다 (에러 코드 포함).
+     * @param errorCode 에러 코드(예: VALIDATION_ERROR)
+     * @param message   오류 메시지
+     */
+    public static <T> ApiResponse<T> error(String errorCode, String message) {
+        return new ApiResponse<>(false, message, errorCode, null);
+    }
+
     /**
      * 오류 응답을 생성합니다.
      * @param message 오류 메시지
      * @param data 오류 데이터
-     * @return 오류 응답 객체
      */
     public static <T> ApiResponse<T> error(String message, T data) {
-        return new ApiResponse<>(false, message, data);
+        return new ApiResponse<>(false, message, null, data);
     }
 }
