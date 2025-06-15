@@ -23,6 +23,15 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findRootCommentsByPostId(@Param("postId") Long postId);
     
     /**
+     * 특정 게시글의 모든 댓글을 계층 구조로 조회합니다. (대댓글 포함)
+     * JPQL의 fetch join을 사용하여 N+1 문제를 해결합니다.
+     * 
+     * 주의: 이 쿼리는 모든 계층의 대댓글을 함께 로드합니다.
+     */
+    @Query("SELECT DISTINCT c FROM Comment c LEFT JOIN FETCH c.children child1 LEFT JOIN FETCH child1.children child2 WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
+    List<Comment> findRootCommentsWithChildrenByPostId(@Param("postId") Long postId);
+    
+    /**
      * 특정 게시글의 모든 댓글을 페이징하여 조회합니다.
      */
     Page<Comment> findByPostId(Long postId, Pageable pageable);
@@ -41,4 +50,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      * 특정 게시글의 댓글 개수를 조회합니다.
      */
     long countByPostId(Long postId);
+    
+    /**
+     * 특정 게시글의 모든 댓글을 생성일 기준으로 조회합니다.
+     */
+    List<Comment> findAllByPostIdOrderByCreatedAtAsc(Long postId);
 }

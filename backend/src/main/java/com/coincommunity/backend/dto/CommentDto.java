@@ -3,6 +3,7 @@ package com.coincommunity.backend.dto;
 import com.coincommunity.backend.entity.Comment;
 import com.coincommunity.backend.entity.Post;
 import com.coincommunity.backend.entity.User;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +31,17 @@ public class CommentDto {
         @NotBlank(message = "내용은 필수 입력값입니다")
         private String content;
         
+        @JsonProperty("parentId")
         private Long parentId;
+        
+        // 명시적 getter 메서드 추가
+        public Long getParentId() {
+            return parentId;
+        }
+        
+        public String getContent() {
+            return content;
+        }
         
         /**
          * CreateRequest DTO로부터 Comment 엔티티를 생성합니다.
