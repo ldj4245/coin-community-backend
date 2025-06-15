@@ -577,9 +577,41 @@ public class KimchiPremiumService {
             log.error("바이낸스 가격 조회 오류 - 심볼: {}", symbol, e);
             log.info("바이낸스 API 호출 실패로 모의 데이터를 반환합니다 - 심볼: {}", symbol);
 
-            // 모의 데이터 반환
-            BigDecimal mockPriceKrw = new BigDecimal("43200000");
-            BigDecimal mockPriceUsd = new BigDecimal("32000");
+            // 모의 데이터 반환 - 현실적인 가격으로 수정
+            BigDecimal mockPriceUsd;
+            
+            // 심볼에 따라 다른 모의 가격 설정 (실제 시장 가격과 유사하게)
+            switch(symbol) {
+                case "BTC":
+                    mockPriceUsd = new BigDecimal("32000");
+                    break;
+                case "ETH":
+                    mockPriceUsd = new BigDecimal("2200");
+                    break;
+                case "XRP":
+                    mockPriceUsd = new BigDecimal("0.5");
+                    break;
+                case "ADA":
+                    mockPriceUsd = new BigDecimal("0.4");
+                    break;
+                case "DOT":
+                    mockPriceUsd = new BigDecimal("5.5");
+                    break;
+                case "LINK":
+                    mockPriceUsd = new BigDecimal("12");
+                    break;
+                case "LTC":
+                    mockPriceUsd = new BigDecimal("80");
+                    break;
+                case "BCH":
+                    mockPriceUsd = new BigDecimal("300");
+                    break;
+                default:
+                    mockPriceUsd = new BigDecimal("100");
+            }
+            
+            // USD 가격을 KRW로 변환
+            BigDecimal mockPriceKrw = mockPriceUsd.multiply(USD_EXCHANGE_RATE);
 
             return KimchiPremiumDto.ExchangePriceInfo.builder()
                 .exchange("BINANCE")
