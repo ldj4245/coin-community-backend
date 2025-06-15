@@ -66,6 +66,7 @@ public class SecurityConfig {
                 .requestMatchers("/posts").permitAll()
                 .requestMatchers("/posts/*/comments").permitAll()
                 .requestMatchers("/posts/popular", "/posts/recent", "/posts/search").permitAll()
+                .requestMatchers("/posts/categories").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/health").permitAll()
                 // Swagger UI 관련 경로 허용

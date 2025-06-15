@@ -20,7 +20,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 게시글 관련 API 엔드포인트
@@ -103,7 +107,7 @@ public class PostController {
      */
     @Operation(
         summary = "게시글 생성",
-        description = "새로운 게시글을 작성합니다.",
+        description = "새로운 게시글을 작성합니다. 유효한 카테고리 목록은 /posts/categories 엔드포인트에서 확인할 수 있습니다.",
         tags = {"게시글"},
         security = {@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "Bearer")}
     )
@@ -249,6 +253,33 @@ public class PostController {
         
         Page<PostDto.PostSummaryResponse> postSummaryPage = postService.searchPosts(keyword, pageable);
         Page<PostDto.SummaryResponse> page = postSummaryPage.map(PostDto.SummaryResponse::new);
+        
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(page)));
+    }
+
+    /**
+     * 모든 게시글 카테고리 조회
+     */
+    @Operation(
+        summary = "게시글 카테고리 목록 조회",
+        description = "모든 유효한 게시글 카테고리를 조회합니다.",
+        tags = {"게시글"}
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<Map<String, String>>>> getCategories() {
+        List<Map<String, String>> categories = Arrays.stream(PostCategory.values())
+                .map(category -> {
+                    Map<String, String> categoryMap = new HashMap<>();
+                    categoryMap.put("name", category.name());
+                    categoryMap.put("displayName", category.getDisplayName());
+                    return categoryMap;
+                })
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(ApiResponse.success(categories));
     }
 }
