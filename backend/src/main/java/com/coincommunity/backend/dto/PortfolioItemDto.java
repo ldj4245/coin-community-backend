@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -14,7 +16,7 @@ import java.time.LocalDateTime;
 
 /**
  * 포트폴리오 아이템 관련 DTO 클래스
- * 포트폴리오 내 개별 암호화폐 보유 현황을 위한 데이터 전송 객체
+ * 포트폴리오에 포함된 개별 코인 정보를 전송하기 위한 데이터 전송 객체
  */
 public class PortfolioItemDto {
 
@@ -26,10 +28,10 @@ public class PortfolioItemDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "포트폴리오 아이템 추가 요청")
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class AddRequest {
         
         @NotBlank(message = "코인 심볼은 필수입니다")
-        @Size(max = 20, message = "코인 심볼은 20자를 초과할 수 없습니다")
         @Schema(description = "코인 심볼", example = "BTC")
         private String coinSymbol;
         
@@ -43,8 +45,8 @@ public class PortfolioItemDto {
         @Schema(description = "평균 매수가", example = "50000000")
         private BigDecimal averagePrice;
         
-        @Size(max = 200, message = "메모는 200자를 초과할 수 없습니다")
-        @Schema(description = "메모", example = "장기 보유 목적")
+        @Size(max = 500, message = "메모는 500자를 초과할 수 없습니다")
+        @Schema(description = "메모", example = "장기 투자용")
         private String notes;
     }
 
@@ -56,18 +58,19 @@ public class PortfolioItemDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "포트폴리오 아이템 업데이트 요청")
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class UpdateRequest {
         
-        @DecimalMin(value = "0.0", message = "수량은 0 이상이어야 합니다")
+        @DecimalMin(value = "0.0", inclusive = false, message = "수량은 0보다 커야 합니다")
         @Schema(description = "보유 수량", example = "0.75")
         private BigDecimal quantity;
         
         @DecimalMin(value = "0.0", inclusive = false, message = "평균 매수가는 0보다 커야 합니다")
-        @Schema(description = "평균 매수가", example = "52000000")
+        @Schema(description = "평균 매수가", example = "48000000")
         private BigDecimal averagePrice;
         
-        @Size(max = 200, message = "메모는 200자를 초과할 수 없습니다")
-        @Schema(description = "메모")
+        @Size(max = 500, message = "메모는 500자를 초과할 수 없습니다")
+        @Schema(description = "메모", example = "추가 매수 후 업데이트")
         private String notes;
     }
 
@@ -97,13 +100,13 @@ public class PortfolioItemDto {
         @Schema(description = "평균 매수가", example = "50000000")
         private BigDecimal averagePrice;
         
-        @Schema(description = "현재가", example = "55000000")
+        @Schema(description = "현재 가격", example = "55000000")
         private BigDecimal currentPrice;
         
-        @Schema(description = "총 매수금액", example = "25000000")
+        @Schema(description = "총 매수 금액", example = "25000000")
         private BigDecimal totalCost;
         
-        @Schema(description = "현재 가치", example = "27500000")
+        @Schema(description = "현재 평가 금액", example = "27500000")
         private BigDecimal currentValue;
         
         @Schema(description = "손익", example = "2500000")
@@ -112,17 +115,11 @@ public class PortfolioItemDto {
         @Schema(description = "수익률 (%)", example = "10.0")
         private BigDecimal returnPercentage;
         
-        @Schema(description = "24시간 변동률 (%)", example = "3.5")
-        private BigDecimal dailyChangePercentage;
-        
-        @Schema(description = "포트폴리오 내 비중 (%)", example = "45.5")
-        private BigDecimal weightPercentage;
-        
-        @Schema(description = "메모")
+        @Schema(description = "메모", example = "장기 투자용")
         private String notes;
         
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        @Schema(description = "추가일시")
+        @Schema(description = "생성일시")
         private LocalDateTime createdAt;
         
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
@@ -130,7 +127,7 @@ public class PortfolioItemDto {
         private LocalDateTime updatedAt;
         
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        @Schema(description = "가격 업데이트 시간")
+        @Schema(description = "가격 업데이트 시점")
         private LocalDateTime priceUpdatedAt;
     }
 

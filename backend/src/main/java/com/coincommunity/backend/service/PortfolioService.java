@@ -443,6 +443,10 @@ public class PortfolioService {
             throw new IllegalArgumentException("기본 포트폴리오는 삭제할 수 없습니다.");
         }
         
+        // 먼저 연관된 트랜잭션을 삭제
+        transactionRepository.deleteByPortfolioId(portfolioId);
+        
+        // 그 다음 포트폴리오 삭제
         portfolioRepository.delete(portfolio);
         log.info("포트폴리오 삭제 완료: portfolioId={}, username={}", portfolioId, username);
     }

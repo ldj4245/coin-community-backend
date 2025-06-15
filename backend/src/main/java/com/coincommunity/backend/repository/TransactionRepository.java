@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Modifying;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -161,4 +162,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      */
     @Query("SELECT SUM(t.fee) FROM Transaction t WHERE t.user.id = :userId")
     Optional<BigDecimal> findTotalFeeByUserId(@Param("userId") Long userId);
+
+    /**
+     * 포트폴리오 ID로 트랜잭션 삭제
+     */
+    @Modifying
+    @Query("DELETE FROM Transaction t WHERE t.portfolio.id = :portfolioId")
+    void deleteByPortfolioId(@Param("portfolioId") Long portfolioId);
 }
