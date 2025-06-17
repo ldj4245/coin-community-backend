@@ -30,8 +30,14 @@ public class Post extends BaseTimeEntity {
     private String content;
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private PostCategory category;
+    
+    @Column
+    private String source; // 뉴스 출처
+
+    @Column
+    private String sourceUrl; // 뉴스 원문 URL
     
     @Builder.Default
     private Integer viewCount = 0;

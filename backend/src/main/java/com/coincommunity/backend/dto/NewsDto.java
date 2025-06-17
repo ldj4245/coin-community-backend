@@ -1,6 +1,7 @@
 package com.coincommunity.backend.dto;
 
 import com.coincommunity.backend.entity.News;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 /**
  * 뉴스 정보 관련 DTO 클래스
  */
+@Schema(description = "뉴스 기사 정보")
 public class NewsDto {
 
     /**
@@ -22,16 +24,24 @@ public class NewsDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(description = "뉴스 응답 DTO")
     public static class NewsResponse {
+        @Schema(description = "기사 ID", example = "1")
         private Long id;
+        @Schema(description = "기사 제목", example = "비트코인, 새로운 최고가 경신")
         private String title;
         private String content;
+        @Schema(description = "언론사", example = "코인데스크코리아")
         private String source;
         private String author;
+        @Schema(description = "기사 원문 링크", example = "https://example.com/news/1")
         private String url;
         private String imageUrl;
+        @Schema(description = "발행일")
         private LocalDateTime publishedAt;
+        @Schema(description = "조회수", example = "100")
         private Integer viewCount;
+        @Schema(description = "등록일")
         private LocalDateTime createdAt;
         
         /**
@@ -69,12 +79,18 @@ public class NewsDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(description = "뉴스 요약 응답 DTO (목록 조회용)")
     public static class NewsSummaryResponse {
+        @Schema(description = "기사 ID", example = "1")
         private Long id;
+        @Schema(description = "기사 제목", example = "비트코인, 새로운 최고가 경신")
         private String title;
+        @Schema(description = "언론사", example = "코인데스크코리아")
         private String source;
         private String imageUrl;
+        @Schema(description = "발행일")
         private LocalDateTime publishedAt;
+        @Schema(description = "조회수", example = "100")
         private Integer viewCount;
         
         /**

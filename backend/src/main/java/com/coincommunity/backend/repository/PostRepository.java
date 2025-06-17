@@ -59,4 +59,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("SELECT p FROM Post p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")
     List<Post> findByUserId(@Param("userId") Long userId);
+
+    boolean existsBySourceUrl(String sourceUrl);
 }
