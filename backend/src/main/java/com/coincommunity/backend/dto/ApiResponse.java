@@ -71,7 +71,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(String errorCode, String message) {
         return new ApiResponse<>(false, message, errorCode, null);
     }
-
+    
     /**
      * 오류 응답을 생성합니다.
      * @param message 오류 메시지

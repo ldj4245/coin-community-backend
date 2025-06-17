@@ -1,0 +1,220 @@
+spring:
+  application:
+    name: coin-community-backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/coin_community?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
+    username: ${DB_USERNAME:root}  # 환경 변수로 보안 강화
+    password: ${DB_PASSWORD:1234}  # 환경 변수로 보안 강화
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 커넥션 풀 최적화 설정 추가
+    hikari:
+      maximum-pool-size: 20  # 최대 커넥션 수
+      minimum-idle: 5        # 최소 유휴 커넥션 수
+      connection-timeout: 30000  # 커넥션 타임아웃 (30초)
+      idle-timeout: 600000       # 유휴 커넥션 타임아웃 (10분)
+      max-lifetime: 1800000      # 커넥션 최대 생명주기 (30분)
+      leak-detection-threshold: 60000  # 커넥션 누수 감지 (60초)
+
+  jpa:
+    hibernate:
+      ddl-auto: update  # 운영 환경에서는 validate로 변경 권장
+    show-sql: false  # SQL 로그 출력 비활성화 (성능 최적화)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false  # SQL 포맷팅 비활성화 (성능 최적화)
+        use_sql_comments: false  # SQL 주석 비활성화 (성능 최적화)
+        # 성능 최적화 설정 추가
+        jdbc:
+          batch_size: 50  # 배치 크기 설정
+          order_inserts: true  # INSERT 순서 최적화
+          order_updates: true  # UPDATE 순서 최적화
+        cache:
+          use_second_level_cache: true  # 2차 캐시 활성화
+          use_query_cache: true         # 쿼리 캐시 활성화
+    defer-datasource-initialization: true
+
+spring:
+  application:
+    name: coin-community-backend
+
+  # 데이터베이스 설정 (보안 강화 및 성능 최적화)
+  datasource:
+    url: jdbc:mysql://localhost:3306/coin_community?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&useUnicode=true
+    username: ${DB_USERNAME:root}  # 환경 변수로 보안 강화
+    password: ${DB_PASSWORD:1234}  # 환경 변수로 보안 강화
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # HikariCP 커넥션 풀 최적화 설정
+    hikari:
+      maximum-pool-size: 20  # 최대 커넥션 수
+      minimum-idle: 5        # 최소 유휴 커넥션 수
+      connection-timeout: 30000  # 커넥션 타임아웃 (30초)
+      idle-timeout: 600000       # 유휴 커넥션 타임아웃 (10분)
+      max-lifetime: 1800000      # 커넥션 최대 생명주기 (30분)
+      leak-detection-threshold: 60000  # 커넥션 누수 감지 (60초)
+
+  # JPA 설정 (성능 최적화)
+  jpa:
+    hibernate:
+      ddl-auto: update  # 운영 환경에서는 validate로 변경 권장
+    show-sql: false  # SQL 로그 출력 비활성화 (성능 최적화)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false  # SQL 포맷팅 비활성화 (성능 최적화)
+        use_sql_comments: false  # SQL 주석 비활성화 (성능 최적화)
+        # 성능 최적화 설정
+        jdbc:
+          batch_size: 50  # 배치 크기 설정
+          order_inserts: true  # INSERT 순서 최적화
+          order_updates: true  # UPDATE 순서 최적화
+        cache:
+          use_second_level_cache: true  # 2차 캐시 활성화
+          use_query_cache: true         # 쿼리 캐시 활성화
+    defer-datasource-initialization: true
+
+  # Redis 설정 (Spring Boot 권장 방식, 보안 강화)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000
+      password: ${REDIS_PASSWORD:}  # Redis 비밀번호 (필요시)
+      database: 0  # 기본 데이터베이스
+
+  # 캐시 설정
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000  # 10분
+      cache-null-values: false
+
+  # Jackson JSON 설정 (성능 최적화)
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
+    time-zone: Asia/Seoul
+    # JSON 직렬화 최적화
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# JWT 설정 (환경 변수로 보안 강화)
+jwt:
+  secret: ${JWT_SECRET:Y29pbi1jb21tdW5pdHktYmFja2VuZC1qd3Qtc2VjcmV0LWtleS1mb3ItYXV0aGVudGljYXRpb24tYW5kLWF1dGhvcml6YXRpb24=}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7 days
+
+# CORS 설정 (보안 강화)
+cors:
+  allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000}"
+  allowed-origins-list:
+    - ${CORS_ORIGIN_1:http://localhost:3000}
+    - ${CORS_ORIGIN_2:http://localhost:3001}
+    - ${CORS_ORIGIN_3:http://127.0.0.1:3000}
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - X-Requested-With
+    - Accept
+    - Origin
+    - Access-Control-Request-Method
+    - Access-Control-Request-Headers
+  expose-headers:
+    - Authorization
+  allow-credentials: true
+  max-age: 3600
+
+# 외부 API 설정 (환경 변수로 보안 강화)
+external:
+  # 뉴스 API 설정
+  newsapi:
+    base-url: https://newsapi.org/v2
+    key: ${NEWSAPI_KEY:YOUR_NEWSAPI_KEY}
+  guardian:
+    base-url: https://content.guardianapis.com
+    api-key: ${GUARDIAN_API_KEY:test}
+  naver:
+    base-url: https://openapi.naver.com/v1
+    client-id: ${NAVER_CLIENT_ID:YOUR_NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET:YOUR_NAVER_CLIENT_SECRET}
+
+  # 국내 거래소 API 설정
+  upbit:
+    base-url: https://api.upbit.com
+    version: v1
+  bithumb:
+    base-url: https://api.bithumb.com
+    version: public
+  coinone:
+    base-url: https://api.coinone.co.kr
+    version: public/v2
+  korbit:
+    base-url: https://api.korbit.co.kr
+    version: v1
+
+  # 해외 거래소 API 설정
+  binance:
+    base-url: https://api.binance.com
+    version: api/v3
+  coinmarketcap:
+    base-url: https://pro-api.coinmarketcap.com/v1
+    key: ${COINMARKETCAP_KEY:YOUR_COINMARKETCAP_KEY}
+  coingecko:
+    base-url: https://api.coingecko.com
+    version: api/v3
+    api-key: ${COINGECKO_API_KEY:}
+
+# 스케줄러 설정
+scheduler:
+  coin-price:
+    enable-upbit: ${SCHEDULER_UPBIT_ENABLED:true}
+    enable-coingecko: ${SCHEDULER_COINGECKO_ENABLED:true}
+    disable-korbit: ${SCHEDULER_KORBIT_DISABLED:true}
+
+# WebSocket 설정
+websocket:
+  endpoints:
+    coin-prices: /ws/coin-prices
+    notifications: /ws/notifications
+
+# Spring Boot Actuator 설정 (모니터링 및 헬스체크)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus  # 모니터링 엔드포인트 추가
+  endpoint:
+    health:
+      show-details: always
+  # 메트릭 설정 추가
+  metrics:
+    export:
+      prometheus:
+        enabled: true  # Prometheus 메트릭 활성화
+
+# 로깅 설정 (운영 환경 고려)
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.coincommunity.backend: ${APP_LOG_LEVEL:DEBUG}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:WARN}
+    org.hibernate.SQL: ${SQL_LOG_LEVEL:WARN}
+    org.hibernate.type.descriptor.sql.BasicBinder: ${SQL_PARAM_LOG_LEVEL:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH:logs/coin-community-backend.log}
+    max-size: 100MB
+    max-history: 30
