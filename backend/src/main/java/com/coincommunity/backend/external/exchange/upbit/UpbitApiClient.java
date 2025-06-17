@@ -75,7 +75,10 @@ public class UpbitApiClient implements ExchangeApiStrategy {
     
     @Override
     public ExchangePriceDto getCoinPrice(String coinSymbol) {
-        String market = "KRW-" + coinSymbol.toUpperCase();
+        String market = coinSymbol.toUpperCase();
+        if (!market.startsWith("KRW-")) {
+            market = "KRW-" + market;
+        }
         List<ExchangePriceDto> prices = getTickers(List.of(market));
         return prices.isEmpty() ? null : prices.get(0);
     }

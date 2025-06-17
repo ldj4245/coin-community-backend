@@ -77,5 +77,35 @@ public class KimchiPremiumDto {
 
         @Schema(description = "마지막 업데이트 시간")
         private LocalDateTime lastUpdated;
+
+        public static ExchangePriceInfo from(ExchangePriceDto dto) {
+            if (dto == null) {
+                return null;
+            }
+            // USD 환율 (실제로는 외환 API에서 가져와야 함)
+            final BigDecimal USD_EXCHANGE_RATE = new BigDecimal("1350.50");
+
+            BigDecimal priceUsd = BigDecimal.ZERO;
+            if (dto.getExchangeType() == ExchangePriceDto.ExchangeType.FOREIGN && dto.getCurrentPrice() != null) {
+                priceUsd = dto.getCurrentPrice();
+            } else if (dto.getCurrentPrice() != null && USD_EXCHANGE_RATE.compareTo(BigDecimal.ZERO) > 0) {
+                priceUsd = dto.getCurrentPrice().divide(USD_EXCHANGE_RATE, 2, java.math.RoundingMode.HALF_UP);
+            }
+
+            BigDecimal priceKrw = dto.getCurrentPrice();
+            if (dto.getExchangeType() == ExchangePriceDto.ExchangeType.FOREIGN && dto.getCurrentPrice() != null) {
+                priceKrw = dto.getCurrentPrice().multiply(USD_EXCHANGE_RATE);
+            }
+
+            return ExchangePriceInfo.builder()
+                    .exchange(dto.getExchangeName())
+                    .priceKrw(priceKrw)
+                    .priceUsd(priceUsd)
+                    .changeRate24h(dto.getChangeRate())
+                    .volume24h(dto.getVolume24h())
+                    .status(dto.getStatus() != null ? dto.getStatus().name() : "UNKNOWN")
+                    .lastUpdated(dto.getLastUpdated())
+                    .build();
+        }
     }
 }

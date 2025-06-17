@@ -127,8 +127,10 @@ public class BinanceApiClient implements ExchangeApiStrategy {
     public ExchangePriceDto getCoinPrice(String symbol) {
         log.info("바이낸스 개별 코인 가격 조회 요청 - 심볼: {}", symbol);
         
+        String normalizedSymbol = symbol.toUpperCase().replace("KRW-", "").replace("USDT", "");
+
         try {
-            String url = buildUrl(TICKER_24HR_ENDPOINT) + "?symbol=" + symbol + "USDT";
+            String url = buildUrl(TICKER_24HR_ENDPOINT) + "?symbol=" + normalizedSymbol + "USDT";
             log.debug("바이낸스 API 호출: {}", url);
             
             long startTime = System.currentTimeMillis();
@@ -138,7 +140,7 @@ public class BinanceApiClient implements ExchangeApiStrategy {
             
             if (response.getBody() != null) {
                 Map<String, Object> data = response.getBody();
-                ExchangePriceDto priceDto = createPriceDto(data, symbol);
+                ExchangePriceDto priceDto = createPriceDto(data, normalizedSymbol);
                 if (priceDto != null) {
                     // 응답 시간을 별도로 설정할 수 없으므로 새로운 객체 생성
                     priceDto = ExchangePriceDto.builder()
@@ -169,7 +171,7 @@ public class BinanceApiClient implements ExchangeApiStrategy {
             }
             
         } catch (Exception e) {
-            log.error("바이낸스 개별 코인 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.error("바이낸스 개별 코인 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
         }
         
         return null;
@@ -213,7 +215,6 @@ public class BinanceApiClient implements ExchangeApiStrategy {
     private ExchangePriceDto createPriceDto(Map<String, Object> data, String symbol) {
         try {
             BigDecimal priceUsd = new BigDecimal(data.get("lastPrice").toString());
-            BigDecimal priceKrw = priceUsd.multiply(USD_EXCHANGE_RATE);
             BigDecimal changeRate = new BigDecimal(data.get("priceChangePercent").toString());
             BigDecimal highPriceUsd = new BigDecimal(data.get("highPrice").toString());
             BigDecimal lowPriceUsd = new BigDecimal(data.get("lowPrice").toString());
@@ -226,16 +227,16 @@ public class BinanceApiClient implements ExchangeApiStrategy {
                 .exchangeType(ExchangePriceDto.ExchangeType.FOREIGN)
                 .symbol(symbol)
                 .koreanName(COIN_KOREAN_NAMES.getOrDefault(symbol, symbol))
-                .currentPrice(priceKrw)
-                .changePrice(priceUsd.multiply(changeRate).divide(new BigDecimal("100"), RoundingMode.HALF_UP).multiply(USD_EXCHANGE_RATE))
+                .currentPrice(priceUsd)
+                .changePrice(new BigDecimal(data.get("priceChange").toString()))
                 .changeRate(changeRate)
-                .highPrice24h(highPriceUsd.multiply(USD_EXCHANGE_RATE))
-                .lowPrice24h(lowPriceUsd.multiply(USD_EXCHANGE_RATE))
+                .highPrice24h(highPriceUsd)
+                .lowPrice24h(lowPriceUsd)
                 .volume24h(new BigDecimal(data.get("volume").toString()))
-                .tradeValue24h(new BigDecimal(data.get("quoteVolume").toString()).multiply(USD_EXCHANGE_RATE))
-                .bidPrice(bidPriceUsd.multiply(USD_EXCHANGE_RATE))
-                .askPrice(askPriceUsd.multiply(USD_EXCHANGE_RATE))
-                .spread(askPriceUsd.subtract(bidPriceUsd).multiply(USD_EXCHANGE_RATE))
+                .tradeValue24h(new BigDecimal(data.get("quoteVolume").toString()))
+                .bidPrice(bidPriceUsd)
+                .askPrice(askPriceUsd)
+                .spread(askPriceUsd.subtract(bidPriceUsd))
                 .spreadRate(calculateSpreadRate(bidPriceUsd, askPriceUsd))
                 .status(ExchangePriceDto.TradingStatus.NORMAL)
                 .marketWarning(ExchangePriceDto.MarketWarning.NONE)

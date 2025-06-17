@@ -4,6 +4,7 @@ import com.coincommunity.backend.dto.ApiResponse;
 import com.coincommunity.backend.dto.ExchangeRateTableDto;
 import com.coincommunity.backend.dto.KimchiPremiumDto;
 import com.coincommunity.backend.service.KimchiPremiumService;
+import com.coincommunity.backend.service.CacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,6 +30,7 @@ import java.util.Map;
 public class KimchiPremiumController {
 
     private final KimchiPremiumService kimchiPremiumService;
+    private final CacheService cacheService;
 
     @GetMapping("/{symbol}")
     @Operation(
@@ -290,5 +292,13 @@ public class KimchiPremiumController {
             return ResponseEntity.internalServerError()
                 .body(ApiResponse.error("건강 상태 확인 실패: " + e.getMessage()));
         }
+    }
+
+    @DeleteMapping("/cache")
+    @Operation(summary = "김치프리미엄 관련 캐시 전체 삭제", description = "kimchiPremium, kimchiPremiumList, exchangeRateTable 캐시를 모두 삭제합니다.")
+    public ResponseEntity<ApiResponse<String>> clearCache() {
+        log.info("김치프리미엄 관련 캐시 전체 삭제 요청");
+        cacheService.evictAllKimchiPremiumCaches();
+        return ResponseEntity.ok(ApiResponse.success("김치프리미엄 관련 캐시가 모두 삭제되었습니다."));
     }
 }

@@ -106,7 +106,7 @@ public class CoinGeckoApiClient implements ExchangeApiStrategy {
     @Cacheable(value = "coinGeckoTopCoins", key = "#limit", unless = "#result.isEmpty()", cacheManager = "ttlCacheManager")
     public List<ExchangePriceDto> getTopCoinsByMarketCap(int limit) {
         return executeWithRetry(() -> {
-            String url = buildUrl(COINS_MARKETS_ENDPOINT) + "?vs_currency=krw&order=market_cap_desc&per_page=" +
+            String url = buildUrl(COINS_MARKETS_ENDPOINT) + "?vs_currency=usd&order=market_cap_desc&per_page=" +
                     limit + "&page=1&sparkline=false";
             
             if (!apiKey.isEmpty()) {
@@ -164,7 +164,7 @@ public class CoinGeckoApiClient implements ExchangeApiStrategy {
         return executeWithRetry(() -> {
             String ids = String.join(",", coinIds);
             String url = buildUrl(SIMPLE_PRICE_ENDPOINT) + "?ids=" + ids + 
-                    "&vs_currencies=krw&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true";
+                    "&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true";
             
             if (!apiKey.isEmpty()) {
                 url += "&x_cg_demo_api_key=" + apiKey;
@@ -207,19 +207,19 @@ public class CoinGeckoApiClient implements ExchangeApiStrategy {
                         .priceReliability(95); // CoinGecko는 높은 신뢰도
                     
                     // null 값 안전 처리 강화
-                    if (priceData.has("krw") && !priceData.get("krw").isNull()) {
-                        parseAndSetBigDecimal(priceData.get("krw"))
+                    if (priceData.has("usd") && !priceData.get("usd").isNull()) {
+                        parseAndSetBigDecimal(priceData.get("usd"))
                             .ifPresent(builder::currentPrice);
                     }
                     
-                    if (priceData.has("krw_24h_change") && !priceData.get("krw_24h_change").isNull()) {
-                        parseAndSetBigDecimal(priceData.get("krw_24h_change"))
+                    if (priceData.has("usd_24h_change") && !priceData.get("usd_24h_change").isNull()) {
+                        parseAndSetBigDecimal(priceData.get("usd_24h_change"))
                             .ifPresent(changeRate -> {
                                 builder.changeRate(changeRate);
                                 
                                 // 현재 가격이 있을 때만 변화량 계산
-                                if (priceData.has("krw") && !priceData.get("krw").isNull()) {
-                                    parseAndSetBigDecimal(priceData.get("krw"))
+                                if (priceData.has("usd") && !priceData.get("usd").isNull()) {
+                                    parseAndSetBigDecimal(priceData.get("usd"))
                                         .ifPresent(currentPrice -> {
                                             BigDecimal changePrice = currentPrice
                                                 .multiply(changeRate)
@@ -230,8 +230,8 @@ public class CoinGeckoApiClient implements ExchangeApiStrategy {
                             });
                     }
                     
-                    if (priceData.has("krw_24h_vol") && !priceData.get("krw_24h_vol").isNull()) {
-                        parseAndSetBigDecimal(priceData.get("krw_24h_vol"))
+                    if (priceData.has("usd_24h_vol") && !priceData.get("usd_24h_vol").isNull()) {
+                        parseAndSetBigDecimal(priceData.get("usd_24h_vol"))
                             .ifPresent(builder::tradeValue24h);
                     }
                     
@@ -290,70 +290,59 @@ public class CoinGeckoApiClient implements ExchangeApiStrategy {
         List<ExchangePriceDto> exchangePrices = new ArrayList<>();
         
         try {
-            JsonNode arrayNode = objectMapper.readTree(response);
+            JsonNode rootNode = objectMapper.readTree(response);
             
-            for (JsonNode coinNode : arrayNode) {
+            for (JsonNode node : rootNode) {
                 try {
+                    String symbol = node.path("symbol").asText().toUpperCase();
+                    
                     ExchangePriceDto.ExchangePriceDtoBuilder builder = ExchangePriceDto.builder()
                         .exchangeName(EXCHANGE)
                         .exchangeKoreanName("코인게코")
                         .exchangeType(ExchangePriceDto.ExchangeType.FOREIGN)
-                        .symbol(coinNode.get("symbol").asText().toUpperCase())
-                        .koreanName(coinNode.get("name").asText())
+                        .symbol(symbol)
+                        .koreanName(node.path("name").asText())
                         .lastUpdated(LocalDateTime.now())
                         .status(ExchangePriceDto.TradingStatus.NORMAL)
                         .marketWarning(ExchangePriceDto.MarketWarning.NONE)
                         .priceReliability(95);
                     
-                    // null 값 안전 처리 강화
-                    if (coinNode.has("current_price") && !coinNode.get("current_price").isNull()) {
-                        parseAndSetBigDecimal(coinNode.get("current_price"))
+                    // KRW 대신 USD 데이터 사용
+                    if (node.has("current_price") && !node.get("current_price").isNull()) {
+                        parseAndSetBigDecimal(node.get("current_price"))
                             .ifPresent(builder::currentPrice);
                     }
                     
-                    if (coinNode.has("price_change_percentage_24h") && !coinNode.get("price_change_percentage_24h").isNull()) {
-                        parseAndSetBigDecimal(coinNode.get("price_change_percentage_24h"))
-                            .ifPresent(changeRate -> {
-                                builder.changeRate(changeRate);
+                    if (node.has("price_change_percentage_24h") && !node.get("price_change_percentage_24h").isNull()) {
+                        parseAndSetBigDecimal(node.get("price_change_percentage_24h"))
+                            .ifPresent(builder::changeRate);
+                    }
                                 
-                                if (coinNode.has("current_price") && !coinNode.get("current_price").isNull()) {
-                                    parseAndSetBigDecimal(coinNode.get("current_price"))
-                                        .ifPresent(currentPrice -> {
-                                            BigDecimal changePrice = currentPrice
-                                                .multiply(changeRate)
-                                                .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
-                                            builder.changePrice(changePrice);
-                                        });
-                                }
-                            });
+                    if (node.has("price_change_24h") && !node.get("price_change_24h").isNull()) {
+                        parseAndSetBigDecimal(node.get("price_change_24h"))
+                            .ifPresent(builder::changePrice);
                     }
                     
-                    if (coinNode.has("total_volume") && !coinNode.get("total_volume").isNull()) {
-                        parseAndSetBigDecimal(coinNode.get("total_volume"))
+                    if (node.has("total_volume") && !node.get("total_volume").isNull()) {
+                        parseAndSetBigDecimal(node.get("total_volume"))
                             .ifPresent(builder::tradeValue24h);
                     }
                     
-                    if (coinNode.has("high_24h") && !coinNode.get("high_24h").isNull()) {
-                        parseAndSetBigDecimal(coinNode.get("high_24h"))
-                            .ifPresent(builder::highPrice24h);
-                    }
-                    
-                    if (coinNode.has("low_24h") && !coinNode.get("low_24h").isNull()) {
-                        parseAndSetBigDecimal(coinNode.get("low_24h"))
-                            .ifPresent(builder::lowPrice24h);
+                    if (node.has("market_cap") && !node.get("market_cap").isNull()) {
+                        parseAndSetBigDecimal(node.get("market_cap"))
+                            .ifPresent(builder::marketCap);
                     }
                     
                     ExchangePriceDto exchangePrice = builder.build();
-                    if (exchangePrice.getCurrentPrice() != null) { // 유효한 가격이 있는 경우만 추가
+                    if (exchangePrice.getCurrentPrice() != null) {
                         exchangePrices.add(exchangePrice);
                     }
-                    
                 } catch (Exception e) {
-                    log.debug("CoinGecko 마켓 데이터 변환 중 오류: {}", coinNode.has("id") ? coinNode.get("id").asText() : "unknown", e); // INFO -> DEBUG로 변경
+                    log.debug("CoinGecko 마켓 데이터 변환 중 오류: {}", node.toString(), e);
                 }
             }
         } catch (Exception e) {
-            log.error("CoinGecko 마켓 데이터 파싱 중 오류가 발생했습니다", e);
+            log.error("CoinGecko 마켓 응답 파싱 중 오류가 발생했습니다", e);
         }
         
         return exchangePrices;

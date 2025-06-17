@@ -76,11 +76,14 @@ public class ExchangePriceDto {
     @Schema(description = "마지막 업데이트 시간")
     private LocalDateTime lastUpdated;
 
-    @Schema(description = "가격 신뢰도 (1-100)", example = "95")
-    private Integer priceReliability;
+    @Schema(description = "가격 정보 신뢰도 (0-100)")
+    private int priceReliability;
 
-    @Schema(description = "API 응답 시간 (ms)", example = "150")
-    private Long responseTime;
+    @Schema(description = "API 응답 시간 (ms)")
+    private long responseTime;
+
+    @Schema(description = "시가총액")
+    private BigDecimal marketCap;
 
     public enum ExchangeType {
         DOMESTIC("국내"),

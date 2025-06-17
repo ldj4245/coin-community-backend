@@ -141,8 +141,10 @@ public class CoinoneApiClient implements ExchangeApiStrategy {
     public ExchangePriceDto getCoinPrice(String symbol) {
         log.info("코인원 개별 코인 가격 조회 요청 - 심볼: {}", symbol);
         
+        String normalizedSymbol = symbol.toUpperCase().replace("KRW-", "");
+
         try {
-            String url = buildUrl(TICKER_ENDPOINT + "?currency=" + symbol.toLowerCase());
+            String url = buildUrl(TICKER_ENDPOINT + "?currency=" + normalizedSymbol.toLowerCase());
             log.debug("코인원 API 호출: {}", url);
             
             long startTime = System.currentTimeMillis();
@@ -154,7 +156,7 @@ public class CoinoneApiClient implements ExchangeApiStrategy {
                 Map<String, Object> data = response.getBody();
                 
                 if ("success".equals(data.get("result"))) {
-                    ExchangePriceDto priceDto = createPriceDto(data, symbol);
+                    ExchangePriceDto priceDto = createPriceDto(data, normalizedSymbol);
                     if (priceDto != null) {
                         // 응답 시간 설정
                         priceDto = ExchangePriceDto.builder()
@@ -186,7 +188,7 @@ public class CoinoneApiClient implements ExchangeApiStrategy {
             }
             
         } catch (Exception e) {
-            log.error("코인원 개별 코인 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.error("코인원 개별 코인 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
         }
         
         return null;

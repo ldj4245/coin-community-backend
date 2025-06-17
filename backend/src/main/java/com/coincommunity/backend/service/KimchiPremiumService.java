@@ -211,45 +211,50 @@ public class KimchiPremiumService {
      */
     private Map<String, KimchiPremiumDto.ExchangePriceInfo> getDomesticExchangePrices(String symbol) {
         Map<String, KimchiPremiumDto.ExchangePriceInfo> prices = new HashMap<>();
+        String normalizedSymbol = symbol.toUpperCase().replace("KRW-", "");
 
         // 업비트
         try {
-            KimchiPremiumDto.ExchangePriceInfo upbitPrice = getUpbitPrice(symbol);
+            KimchiPremiumDto.ExchangePriceInfo upbitPrice = getUpbitPrice(normalizedSymbol);
             if (upbitPrice != null) {
                 prices.put("UPBIT", upbitPrice);
             }
         } catch (Exception e) {
-            log.warn("업비트 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.warn("업비트 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
         }
 
         // 빗썸
         try {
-            KimchiPremiumDto.ExchangePriceInfo bithumbPrice = getBithumbPrice(symbol);
+            KimchiPremiumDto.ExchangePriceInfo bithumbPrice = getBithumbPrice(normalizedSymbol);
             if (bithumbPrice != null) {
                 prices.put("BITHUMB", bithumbPrice);
             }
         } catch (Exception e) {
-            log.warn("빗썸 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.warn("빗썸 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
         }
 
         // 코인원
         try {
-            KimchiPremiumDto.ExchangePriceInfo coinonePrice = getCoinonePrice(symbol);
+            KimchiPremiumDto.ExchangePriceInfo coinonePrice = getCoinonePrice(normalizedSymbol);
             if (coinonePrice != null) {
                 prices.put("COINONE", coinonePrice);
             }
         } catch (Exception e) {
-            log.warn("코인원 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.warn("코인원 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
         }
 
         // 코빗
         try {
-            KimchiPremiumDto.ExchangePriceInfo korbitPrice = getKorbitPrice(symbol);
+            KimchiPremiumDto.ExchangePriceInfo korbitPrice = getKorbitPrice(normalizedSymbol);
             if (korbitPrice != null) {
                 prices.put("KORBIT", korbitPrice);
             }
         } catch (Exception e) {
-            log.warn("코빗 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.warn("코빗 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
+        }
+
+        if (prices.isEmpty()) {
+            log.warn("국내 거래소 가격 정보를 가져오지 못했습니다 - 심볼: {}", normalizedSymbol);
         }
 
         return prices;
@@ -260,15 +265,30 @@ public class KimchiPremiumService {
      */
     private Map<String, KimchiPremiumDto.ExchangePriceInfo> getForeignExchangePrices(String symbol) {
         Map<String, KimchiPremiumDto.ExchangePriceInfo> prices = new HashMap<>();
+        String normalizedSymbol = symbol.toUpperCase().replace("USDT", "");
 
         // 바이낸스
         try {
-            KimchiPremiumDto.ExchangePriceInfo binancePrice = getBinancePrice(symbol);
+            KimchiPremiumDto.ExchangePriceInfo binancePrice = getBinancePrice(normalizedSymbol);
             if (binancePrice != null) {
                 prices.put("BINANCE", binancePrice);
             }
         } catch (Exception e) {
-            log.warn("바이낸스 가격 조회 실패 - 심볼: {}", symbol, e);
+            log.warn("바이낸스 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
+        }
+
+        // 코인게코 (선택적)
+        try {
+            KimchiPremiumDto.ExchangePriceInfo coingeckoPrice = getCoinGeckoPrice(normalizedSymbol);
+            if (coingeckoPrice != null) {
+                prices.put("COINGECKO", coingeckoPrice);
+            }
+        } catch (Exception e) {
+            log.warn("코인게코 가격 조회 실패 - 심볼: {}", normalizedSymbol, e);
+        }
+        
+        if (prices.isEmpty()) {
+            log.warn("해외 거래소 가격 정보를 가져오지 못했습니다 - 심볼: {}", normalizedSymbol);
         }
 
         return prices;
@@ -279,106 +299,20 @@ public class KimchiPremiumService {
      */
     private KimchiPremiumDto.ExchangePriceInfo getUpbitPrice(String symbol) {
         try {
-            // 심볼 포맷 정규화 (KRW-BTC, BTC, KRW-btc 등 다양한 형식 지원)
-            String coinSymbol = symbol;
-            if (symbol.startsWith("KRW-")) {
-                coinSymbol = symbol.substring(4).toUpperCase();
-            } else {
-                coinSymbol = symbol.toUpperCase();
-            }
-
-            // 업비트는 KRW-BTC 형식으로 사용
-            String upbitSymbol = "KRW-" + coinSymbol;
-
-            log.info("업비트 가격 조회 시도 - 원본 심볼: {}, 변환된 심볼: {}", symbol, upbitSymbol);
-
-            // 업비트 API 클라이언트를 통해 가격 정보 조회
-            ExchangePriceDto priceDto = null;
-            try {
-                // 업비트 API 호출
-                priceDto = exchangeApiContext.getCoinPrice("UPBIT", upbitSymbol).orElse(null);
-
-                // 디버깅을 위해 지원되는 코인 목록 로깅
-                List<String> supportedCoins = exchangeApiContext.getSupportedCoins("UPBIT");
-                log.info("업비트 지원 코인 목록: {}", supportedCoins);
-
-            } catch (Exception apiEx) {
-                log.warn("업비트 API 호출 실패 - 심볼: {}, 오류: {}", upbitSymbol, apiEx.getMessage());
-
-                // 직접 REST 요청 시도
-                try {
-                    String tickerUrl = upbitBaseUrl + "/" + upbitVersion + "/ticker?markets=" + upbitSymbol;
-                    log.info("직접 업비트 API 호출 시도: {}", tickerUrl);
-                    ResponseEntity<String> response = restTemplate.getForEntity(tickerUrl, String.class);
-                    log.info("업비트 API 응답: {}", response.getBody());
-
-                    // 마켓 코드 목록 조회 시도
-                    String marketUrl = upbitBaseUrl + "/" + upbitVersion + "/market/all";
-                    log.info("업비트 마켓 코드 목록 조회: {}", marketUrl);
-                    ResponseEntity<String> marketResponse = restTemplate.getForEntity(marketUrl, String.class);
-                    log.info("업비트 마켓 코드 응답: {}", marketResponse.getBody());
-
-                } catch (Exception restEx) {
-                    log.warn("직접 REST 호출도 실패: {}", restEx.getMessage());
-                }
-            }
+            log.info("업비트 가격 조회 시도 - 심볼: {}", symbol);
+            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("UPBIT", symbol).orElse(null);
 
             if (priceDto != null) {
                 log.info("업비트 가격 조회 성공 - 심볼: {}, 가격: {}", symbol, priceDto.getCurrentPrice());
-                return KimchiPremiumDto.ExchangePriceInfo.builder()
-                    .exchange(priceDto.getExchangeName())
-                    .priceKrw(priceDto.getCurrentPrice())
-                    .priceUsd(priceDto.getCurrentPrice().divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                    .changeRate24h(priceDto.getChangeRate())
-                    .volume24h(priceDto.getVolume24h())
-                    .status(priceDto.getStatus().name())
-                    .lastUpdated(priceDto.getLastUpdated())
-                    .build();
+                return KimchiPremiumDto.ExchangePriceInfo.from(priceDto);
             }
 
             log.warn("업비트 API에서 가격 정보를 가져오지 못했습니다 - 심볼: {}", symbol);
 
-            // 업비트 건강 상태 확인
-            boolean isHealthy = checkUpbitHealth();
-            log.info("업비트 API 건강 상태: {}", isHealthy ? "정상" : "비정상");
-
         } catch (Exception e) {
             log.error("업비트 가격 조회 처리 중 예외 발생 - 심볼: {}", symbol, e);
         }
-
-        log.info("업비트 API 호출 실패로 모의 데이터를 반환합니다 - 심볼: {}", symbol);
-
-        // API 호출 실패 시 심볼에 따라 다른 모의 데이터 반환
-        BigDecimal mockPrice;
-        if ("BTC".equals(symbol) || symbol.endsWith("BTC")) {
-            mockPrice = new BigDecimal("45000000");
-        } else if ("ETH".equals(symbol) || symbol.endsWith("ETH")) {
-            mockPrice = new BigDecimal("2950000");
-        } else if ("XRP".equals(symbol) || symbol.endsWith("XRP")) {
-            mockPrice = new BigDecimal("500");
-        } else if ("ADA".equals(symbol) || symbol.endsWith("ADA")) {
-            mockPrice = new BigDecimal("410");
-        } else if ("DOT".equals(symbol) || symbol.endsWith("DOT")) {
-            mockPrice = new BigDecimal("7500");
-        } else if ("LINK".equals(symbol) || symbol.endsWith("LINK")) {
-            mockPrice = new BigDecimal("15000");
-        } else if ("LTC".equals(symbol) || symbol.endsWith("LTC")) {
-            mockPrice = new BigDecimal("105000");
-        } else if ("BCH".equals(symbol) || symbol.endsWith("BCH")) {
-            mockPrice = new BigDecimal("320000");
-        } else {
-            mockPrice = new BigDecimal("10000");
-        }
-
-        return KimchiPremiumDto.ExchangePriceInfo.builder()
-            .exchange("UPBIT")
-            .priceKrw(mockPrice)
-            .priceUsd(mockPrice.divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-            .changeRate24h(new BigDecimal("1.9"))
-            .volume24h(new BigDecimal("145.67"))
-            .status("NORMAL")
-            .lastUpdated(LocalDateTime.now())
-            .build();
+        return null; // 실패 시 null 반환
     }
 
     /**
@@ -386,53 +320,16 @@ public class KimchiPremiumService {
      */
     private KimchiPremiumDto.ExchangePriceInfo getBithumbPrice(String symbol) {
         try {
-            // 빗썸은 KRW- 접두사 없이 그대로 사용
-            String bithumbSymbol = symbol;
-            if (symbol.startsWith("KRW-")) {
-                bithumbSymbol = symbol.replace("KRW-", "");
-            }
-
-            // 빗썸 API 클라이언트를 통해 가격 정보 조회
-            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("BITHUMB", bithumbSymbol).orElse(null);
+            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("BITHUMB", symbol).orElse(null);
 
             if (priceDto != null) {
-                return KimchiPremiumDto.ExchangePriceInfo.builder()
-                    .exchange(priceDto.getExchangeName())
-                    .priceKrw(priceDto.getCurrentPrice())
-                    .priceUsd(priceDto.getCurrentPrice().divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                    .changeRate24h(priceDto.getChangeRate())
-                    .volume24h(priceDto.getVolume24h())
-                    .status(priceDto.getStatus().name())
-                    .lastUpdated(priceDto.getLastUpdated())
-                    .build();
+                return KimchiPremiumDto.ExchangePriceInfo.from(priceDto);
             }
-
-            throw new RuntimeException("빗썸 API에서 가격 정보를 가져오지 못했습니다 - 심볼: " + symbol);
-
+            log.warn("빗썸 API에서 가격 정보를 가져오지 못했습니다 - 심볼: {}", symbol);
         } catch (Exception e) {
             log.error("빗썸 가격 조회 오류 - 심볼: {}", symbol, e);
-            log.info("빗썸 API 호출 실패로 모의 데이터를 반환합니다 - 심볼: {}", symbol);
-
-            // 모의 데이터 반환
-            BigDecimal mockPrice;
-            if ("BTC".equals(symbol)) {
-                mockPrice = new BigDecimal("44800000");
-            } else if ("ETH".equals(symbol)) {
-                mockPrice = new BigDecimal("44800000");
-            } else {
-                mockPrice = new BigDecimal("10000"); // 기본값
-            }
-
-            return KimchiPremiumDto.ExchangePriceInfo.builder()
-                .exchange("BITHUMB")
-                .priceKrw(mockPrice)
-                .priceUsd(mockPrice.divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                .changeRate24h(new BigDecimal("1.8"))
-                .volume24h(new BigDecimal("123.45"))
-                .status("NORMAL")
-                .lastUpdated(LocalDateTime.now())
-                .build();
         }
+        return null;
     }
 
     /**
@@ -440,53 +337,16 @@ public class KimchiPremiumService {
      */
     private KimchiPremiumDto.ExchangePriceInfo getCoinonePrice(String symbol) {
         try {
-            // 코인원은 KRW- 접두사 없이 그대로 사용
-            String coinoneSymbol = symbol;
-            if (symbol.startsWith("KRW-")) {
-                coinoneSymbol = symbol.replace("KRW-", "");
-            }
-
-            // 코인원 API 클라이언트를 통해 가격 정보 조회
-            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("COINONE", coinoneSymbol).orElse(null);
+            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("COINONE", symbol).orElse(null);
 
             if (priceDto != null) {
-                return KimchiPremiumDto.ExchangePriceInfo.builder()
-                    .exchange(priceDto.getExchangeName())
-                    .priceKrw(priceDto.getCurrentPrice())
-                    .priceUsd(priceDto.getCurrentPrice().divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                    .changeRate24h(priceDto.getChangeRate())
-                    .volume24h(priceDto.getVolume24h())
-                    .status(priceDto.getStatus().name())
-                    .lastUpdated(priceDto.getLastUpdated())
-                    .build();
+                return KimchiPremiumDto.ExchangePriceInfo.from(priceDto);
             }
-
-            throw new RuntimeException("코인원 API에서 가격 정보를 가져오지 못했습니다 - 심볼: " + symbol);
-
+            log.warn("코인원 API에서 가격 정보를 가져오지 못했습니다 - 심볼: {}", symbol);
         } catch (Exception e) {
             log.error("코인원 가격 조회 오류 - 심볼: {}", symbol, e);
-            log.info("코인원 API 호출 실패로 모의 데이터를 반환합니다 - 심볼: {}", symbol);
-
-            // 모의 데이터 반환
-            BigDecimal mockPrice;
-            if ("BTC".equals(symbol)) {
-                mockPrice = new BigDecimal("44750000");
-            } else if ("ETH".equals(symbol)) {
-                mockPrice = new BigDecimal("44750000");
-            } else {
-                mockPrice = new BigDecimal("10000"); // 기본값
-            }
-
-            return KimchiPremiumDto.ExchangePriceInfo.builder()
-                .exchange("COINONE")
-                .priceKrw(mockPrice)
-                .priceUsd(mockPrice.divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                .changeRate24h(new BigDecimal("1.5"))
-                .volume24h(new BigDecimal("98.76"))
-                .status("NORMAL")
-                .lastUpdated(LocalDateTime.now())
-                .build();
         }
+        return null;
     }
 
     /**
@@ -494,53 +354,16 @@ public class KimchiPremiumService {
      */
     private KimchiPremiumDto.ExchangePriceInfo getKorbitPrice(String symbol) {
         try {
-            // 코빗은 KRW- 접두사 없이 그대로 사용
-            String korbitSymbol = symbol;
-            if (symbol.startsWith("KRW-")) {
-                korbitSymbol = symbol.replace("KRW-", "");
-            }
-
-            // 코빗 API 클라이언트를 통해 가격 정보 조회
-            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("KORBIT", korbitSymbol).orElse(null);
+            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("KORBIT", symbol).orElse(null);
 
             if (priceDto != null) {
-                return KimchiPremiumDto.ExchangePriceInfo.builder()
-                    .exchange(priceDto.getExchangeName())
-                    .priceKrw(priceDto.getCurrentPrice())
-                    .priceUsd(priceDto.getCurrentPrice().divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                    .changeRate24h(priceDto.getChangeRate())
-                    .volume24h(priceDto.getVolume24h())
-                    .status(priceDto.getStatus().name())
-                    .lastUpdated(priceDto.getLastUpdated())
-                    .build();
+                return KimchiPremiumDto.ExchangePriceInfo.from(priceDto);
             }
-
-            throw new RuntimeException("코빗 API에서 가격 정보를 가져오지 못했습니다 - 심볼: " + symbol);
-
+            log.warn("코빗 API에서 가격 정보를 가져오지 못했습니다 - 심볼: {}", symbol);
         } catch (Exception e) {
             log.error("코빗 가격 조회 오류 - 심볼: {}", symbol, e);
-            log.info("코빗 API 호출 실패로 모의 데이터를 반환합니다 - 심볼: {}", symbol);
-
-            // 모의 데이터 반환
-            BigDecimal mockPrice;
-            if ("BTC".equals(symbol)) {
-                mockPrice = new BigDecimal("44900000");
-            } else if ("ETH".equals(symbol)) {
-                mockPrice = new BigDecimal("44900000");
-            } else {
-                mockPrice = new BigDecimal("10000"); // 기본값
-            }
-
-            return KimchiPremiumDto.ExchangePriceInfo.builder()
-                .exchange("KORBIT")
-                .priceKrw(mockPrice)
-                .priceUsd(mockPrice.divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                .changeRate24h(new BigDecimal("2.1"))
-                .volume24h(new BigDecimal("87.32"))
-                .status("NORMAL")
-                .lastUpdated(LocalDateTime.now())
-                .build();
         }
+        return null;
     }
 
     /**
@@ -548,81 +371,33 @@ public class KimchiPremiumService {
      */
     private KimchiPremiumDto.ExchangePriceInfo getBinancePrice(String symbol) {
         try {
-            // 바이낸스는 USDT로 거래쌍 변경 필요
-            String binanceSymbol = symbol;
-            if (symbol.startsWith("KRW-")) {
-                binanceSymbol = symbol.replace("KRW-", "") + "USDT";
-            } else if (!symbol.endsWith("USDT") && !symbol.endsWith("BUSD") && !symbol.endsWith("USD")) {
-                binanceSymbol = symbol + "USDT";
-            }
-
-            // 바이낸스 API 클라이언트를 통해 가격 정보 조회
-            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("BINANCE", binanceSymbol).orElse(null);
+            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("BINANCE", symbol).orElse(null);
 
             if (priceDto != null) {
-                return KimchiPremiumDto.ExchangePriceInfo.builder()
-                    .exchange(priceDto.getExchangeName())
-                    .priceKrw(priceDto.getCurrentPrice())
-                    .priceUsd(priceDto.getCurrentPrice().divide(USD_EXCHANGE_RATE, 2, RoundingMode.HALF_UP))
-                    .changeRate24h(priceDto.getChangeRate())
-                    .volume24h(priceDto.getVolume24h())
-                    .status(priceDto.getStatus().name())
-                    .lastUpdated(priceDto.getLastUpdated())
-                    .build();
+                return KimchiPremiumDto.ExchangePriceInfo.from(priceDto);
             }
-
-            throw new RuntimeException("바이낸스 API에서 가격 정보를 가져오지 못했습니다 - 심볼: " + symbol);
-
+            log.warn("바이낸스 API에서 가격 정보를 가져오지 못했습니다 - 심볼: {}", symbol);
         } catch (Exception e) {
             log.error("바이낸스 가격 조회 오류 - 심볼: {}", symbol, e);
-            log.info("바이낸스 API 호출 실패로 모의 데이터를 반환합니다 - 심볼: {}", symbol);
-
-            // 모의 데이터 반환 - 현실적인 가격으로 수정
-            BigDecimal mockPriceUsd;
-            
-            // 심볼에 따라 다른 모의 가격 설정 (실제 시장 가격과 유사하게)
-            switch(symbol) {
-                case "BTC":
-                    mockPriceUsd = new BigDecimal("32000");
-                    break;
-                case "ETH":
-                    mockPriceUsd = new BigDecimal("2200");
-                    break;
-                case "XRP":
-                    mockPriceUsd = new BigDecimal("0.5");
-                    break;
-                case "ADA":
-                    mockPriceUsd = new BigDecimal("0.4");
-                    break;
-                case "DOT":
-                    mockPriceUsd = new BigDecimal("5.5");
-                    break;
-                case "LINK":
-                    mockPriceUsd = new BigDecimal("12");
-                    break;
-                case "LTC":
-                    mockPriceUsd = new BigDecimal("80");
-                    break;
-                case "BCH":
-                    mockPriceUsd = new BigDecimal("300");
-                    break;
-                default:
-                    mockPriceUsd = new BigDecimal("100");
-            }
-            
-            // USD 가격을 KRW로 변환
-            BigDecimal mockPriceKrw = mockPriceUsd.multiply(USD_EXCHANGE_RATE);
-
-            return KimchiPremiumDto.ExchangePriceInfo.builder()
-                .exchange("BINANCE")
-                .priceKrw(mockPriceKrw)
-                .priceUsd(mockPriceUsd)
-                .changeRate24h(new BigDecimal("1.2"))
-                .volume24h(new BigDecimal("1234.56"))
-                .status("NORMAL")
-                .lastUpdated(LocalDateTime.now())
-                .build();
         }
+        return null;
+    }
+
+    /**
+     * 코인게코 가격 조회
+     */
+    private KimchiPremiumDto.ExchangePriceInfo getCoinGeckoPrice(String symbol) {
+        try {
+            ExchangePriceDto priceDto = exchangeApiContext.getCoinPrice("COINGECKO", symbol).orElse(null);
+
+            if (priceDto != null) {
+                return KimchiPremiumDto.ExchangePriceInfo.from(priceDto);
+            }
+            log.warn("코인게코 API에서 가격 정보를 가져오지 못했습니다 - 심볼: {}", symbol);
+        } catch (Exception e) {
+            log.error("코인게코 가격 조회 오류 - 심볼: {}", symbol, e);
+        }
+        return null;
     }
 
     /**
@@ -700,13 +475,6 @@ public class KimchiPremiumService {
             }
         } catch (Exception e) {
             log.error("국내 거래소 시세 정보 수집 오류 - 심볼: {}", symbol, e);
-            log.info("국내 거래소 API 호출 실패로 모의 데이터를 사용합니다");
-
-            // 실패시 모의 데이터 반환
-            rates.add(createMockExchangeRate("UPBIT", "업비트", new BigDecimal("45000000"), ExchangeRateTableDto.ExchangeType.DOMESTIC));
-            rates.add(createMockExchangeRate("BITHUMB", "빗썸", new BigDecimal("44800000"), ExchangeRateTableDto.ExchangeType.DOMESTIC));
-            rates.add(createMockExchangeRate("COINONE", "코인원", new BigDecimal("44750000"), ExchangeRateTableDto.ExchangeType.DOMESTIC));
-            rates.add(createMockExchangeRate("KORBIT", "코빗", new BigDecimal("44900000"), ExchangeRateTableDto.ExchangeType.DOMESTIC));
         }
 
         return rates;
@@ -746,10 +514,6 @@ public class KimchiPremiumService {
             }
         } catch (Exception e) {
             log.error("해외 거래소 시세 정보 수집 오류 - 심볼: {}", symbol, e);
-            log.info("해외 거래소 API 호출 실패로 모의 데이터를 사용합니다");
-
-            // 실패시 모의 데이터 반환
-            rates.add(createMockExchangeRate("BINANCE", "바이낸스", new BigDecimal("43200000"), ExchangeRateTableDto.ExchangeType.FOREIGN));
         }
 
         return rates;
