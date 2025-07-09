@@ -58,25 +58,24 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // 인증 없이 접근 가능한 API 설정
-                .requestMatchers("/users/register", "/users/login").permitAll()
-                .requestMatchers("/trending-coins/**").permitAll()
-                .requestMatchers("/news/**", "/coins/**").permitAll()
-                .requestMatchers("/exchange-prices/**").permitAll()
-                .requestMatchers("/kimchi-premium/**").permitAll()
-                .requestMatchers("/posts").permitAll()
-                .requestMatchers("/posts/*/comments").permitAll()
-                .requestMatchers("/posts/popular", "/posts/recent", "/posts/search").permitAll()
-                .requestMatchers("/posts/categories").permitAll()
-                .requestMatchers("/ws/**").permitAll()
-                .requestMatchers("/health").permitAll()
+                .requestMatchers("/api/v1/users/register", "/api/v1/users/login").permitAll()
+                .requestMatchers("/api/v1/coins/**").permitAll()
+                .requestMatchers("/api/v1/posts").permitAll()
+                .requestMatchers("/api/v1/posts/*/comments").permitAll()
+                .requestMatchers("/api/v1/posts/search").permitAll()
+                .requestMatchers("/api/v1/posts/category/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
                 // Swagger UI 관련 경로 허용
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                 .requestMatchers("/swagger-resources/**", "/webjars/**").permitAll()
-                    .requestMatchers("/").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/").permitAll()
                 // 이외 모든 요청은 인증 필요
                 .anyRequest().authenticated()
             )
+            // H2 콘솔용 헤더 설정
+            .headers(headers -> headers.frameOptions().disable())
             // JWT 필터 추가
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

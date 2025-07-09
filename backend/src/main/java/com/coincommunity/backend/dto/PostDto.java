@@ -3,88 +3,70 @@ package com.coincommunity.backend.dto;
 import com.coincommunity.backend.entity.Post;
 import com.coincommunity.backend.entity.PostCategory;
 import com.coincommunity.backend.entity.User;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * 게시글 정보 관련 DTO 클래스
+ * 게시글 관련 DTO 클래스들
  */
 public class PostDto {
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 게시글 생성 요청 DTO
      */
     @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateRequest {
-        @NotBlank(message = "제목은 필수 입력값입니다")
+        @NotBlank(message = "제목은 필수입니다")
+        @Size(max = 200, message = "제목은 200자를 초과할 수 없습니다")
         private String title;
-        
-        @NotBlank(message = "내용은 필수 입력값입니다")
+
+        @NotBlank(message = "내용은 필수입니다")
         private String content;
-        
-        @NotNull(message = "카테고리는 필수 입력값입니다")
+
+        @NotNull(message = "카테고리는 필수입니다")
         private PostCategory category;
-        
-        private List<String> imageUrls;
-        
+
         /**
-         * CreateRequest DTO로부터 Post 엔티티를 생성합니다.
+         * CreateRequest를 Post 엔티티로 변환
          */
         public Post toEntity(User user) {
-            Post post = new Post();
-            post.setTitle(this.title);
-            post.setContent(this.content);
-            post.setCategory(this.category);
-            post.setUser(user);
-            
-            if (imageUrls != null && !imageUrls.isEmpty()) {
-                try {
-                    post.setImageUrls(objectMapper.writeValueAsString(imageUrls));
-                } catch (JsonProcessingException e) {
-                    post.setImageUrls("[]");
-                }
-            } else {
-                post.setImageUrls("[]");
-            }
-            
-            return post;
+            return Post.builder()
+                    .title(this.title)
+                    .content(this.content)
+                    .category(this.category)
+                    .user(user)
+                    .viewCount(0)
+                    .likeCount(0)
+                    .commentCount(0)
+                    .build();
         }
     }
-    
+
     /**
      * 게시글 수정 요청 DTO
      */
     @Getter
+    @Setter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UpdateRequest {
-        @NotBlank(message = "제목은 필수 입력값입니다")
+        @NotBlank(message = "제목은 필수입니다")
+        @Size(max = 200, message = "제목은 200자를 초과할 수 없습니다")
         private String title;
-        
-        @NotBlank(message = "내용은 필수 입력값입니다")
+
+        @NotBlank(message = "내용은 필수입니다")
         private String content;
-        
-        private List<String> imageUrls;
     }
-    
+
     /**
      * 게시글 응답 DTO
      */
@@ -101,14 +83,12 @@ public class PostDto {
         private Integer viewCount;
         private Integer likeCount;
         private Integer commentCount;
-        private List<String> imageUrls;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
         private UserDto.UserResponse user;
-        private boolean liked;
-        
+
         /**
-         * Post 엔티티로부터 PostResponse DTO를 생성합니다.
+         * Post 엔티티로부터 PostResponse DTO를 생성
          */
         public static PostResponse from(Post post) {
             return PostResponse.builder()
@@ -120,57 +100,21 @@ public class PostDto {
                     .viewCount(post.getViewCount())
                     .likeCount(post.getLikeCount())
                     .commentCount(post.getCommentCount())
-                    .imageUrls(parseImageUrls(post.getImageUrls()))
                     .createdAt(post.getCreatedAt())
                     .updatedAt(post.getUpdatedAt())
                     .user(UserDto.UserResponse.from(post.getUser()))
-                    .liked(false)
                     .build();
         }
-        
-        /**
-         * Post 엔티티로부터 PostResponse DTO를 생성하며, 좋아요 상태를 설정합니다.
-         */
-        public static PostResponse from(Post post, boolean liked) {
-            PostResponse response = from(post);
-            response.setLiked(liked);
-            return response;
-        }
-        
-        /**
-         * 좋아요 상태를 설정합니다.
-         */
-        public void setLiked(boolean liked) {
-            this.liked = liked;
-        }
-        
-        /**
-         * 이미지 URL JSON 문자열을 List<String>으로 변환합니다.
-         */
-        private static List<String> parseImageUrls(String imageUrlsJson) {
-            if (imageUrlsJson == null || imageUrlsJson.isEmpty()) {
-                return new ArrayList<>();
-            }
-            
-            try {
-                return objectMapper.readValue(
-                    imageUrlsJson,
-                    new TypeReference<List<String>>() {}
-                );
-            } catch (JsonProcessingException e) {
-                return new ArrayList<>();
-            }
-        }
     }
-    
+
     /**
-     * 게시글 목록 응답 DTO (요약 정보)
+     * 게시글 요약 정보 DTO (목록 조회용)
      */
     @Getter
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class PostSummaryResponse {
+    public static class PostSummary {
         private Long id;
         private String title;
         private PostCategory category;
@@ -179,13 +123,13 @@ public class PostDto {
         private Integer likeCount;
         private Integer commentCount;
         private LocalDateTime createdAt;
-        private UserDto.UserResponse user;
-        
+        private String username;
+
         /**
-         * Post 엔티티로부터 PostSummaryResponse DTO를 생성합니다.
+         * Post 엔티티로부터 PostSummary DTO를 생성
          */
-        public static PostSummaryResponse from(Post post) {
-            return PostSummaryResponse.builder()
+        public static PostSummary from(Post post) {
+            return PostSummary.builder()
                     .id(post.getId())
                     .title(post.getTitle())
                     .category(post.getCategory())
@@ -194,50 +138,8 @@ public class PostDto {
                     .likeCount(post.getLikeCount())
                     .commentCount(post.getCommentCount())
                     .createdAt(post.getCreatedAt())
-                    .user(UserDto.UserResponse.from(post.getUser()))
+                    .username(post.getUser().getUsername())
                     .build();
-        }
-    }
-    
-    /**
-     * 게시글 상세 응답 DTO (DetailResponse 별칭)
-     */
-    public static class DetailResponse extends PostResponse {
-        public DetailResponse(PostResponse postResponse) {
-            super(
-                postResponse.getId(),
-                postResponse.getTitle(),
-                postResponse.getContent(),
-                postResponse.getCategory(),
-                postResponse.getCategoryDisplayName(),
-                postResponse.getViewCount(),
-                postResponse.getLikeCount(),
-                postResponse.getCommentCount(),
-                postResponse.getImageUrls(),
-                postResponse.getCreatedAt(),
-                postResponse.getUpdatedAt(),
-                postResponse.getUser(),
-                postResponse.isLiked()
-            );
-        }
-    }
-    
-    /**
-     * 게시글 요약 응답 DTO (SummaryResponse 별칭)  
-     */
-    public static class SummaryResponse extends PostSummaryResponse {
-        public SummaryResponse(PostSummaryResponse postSummaryResponse) {
-            super(
-                postSummaryResponse.getId(),
-                postSummaryResponse.getTitle(),
-                postSummaryResponse.getCategory(),
-                postSummaryResponse.getCategoryDisplayName(),
-                postSummaryResponse.getViewCount(),
-                postSummaryResponse.getLikeCount(),
-                postSummaryResponse.getCommentCount(),
-                postSummaryResponse.getCreatedAt(),
-                postSummaryResponse.getUser()
-            );
         }
     }
 }
