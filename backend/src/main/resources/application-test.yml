@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: coin-community-backend
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    defer-datasource-initialization: true
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    default-property-inclusion: NON_NULL
+    time-zone: Asia/Seoul
+
+jwt:
+  secret: Y29pbi1jb21tdW5pdHktYmFja2VuZC1qd3Qtc2VjcmV0LWtleS1mb3ItYXV0aGVudGljYXRpb24tYW5kLWF1dGhvcml6YXRpb24=
+  expiration: 86400000 # 24 hours
+  refresh-expiration: 604800000 # 7 days
+
+# CORS 설정
+cors:
+  allowed-origins: "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
+  allowed-origins-list:
+    - http://localhost:3000
+    - http://localhost:3001
+    - http://127.0.0.1:3000
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - X-Requested-With
+    - Accept
+    - Origin
+    - Access-Control-Request-Method
+    - Access-Control-Request-Headers
+  expose-headers:
+    - Authorization
+  allow-credentials: true
+  max-age: 3600
+
+external:
+  # 기본 코인 가격 API (단순화)
+  coingecko:
+    base-url: https://api.coingecko.com
+    version: api/v3
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.coincommunity.backend: DEBUG
+    org.springframework.security: DEBUG
