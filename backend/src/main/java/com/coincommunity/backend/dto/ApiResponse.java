@@ -32,7 +32,12 @@ public class ApiResponse<T> {
      * @return 성공 응답 객체
      */
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "성공적으로 처리되었습니다.", null, data);
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message("성공적으로 처리되었습니다.")
+                .errorCode(null)
+                .data(data)
+                .build();
     }
 
     /**
@@ -42,7 +47,12 @@ public class ApiResponse<T> {
      * @return 성공 응답 객체
      */
     public static <T> ApiResponse<T> successWithMessage(String message, T data) {
-        return new ApiResponse<>(true, message, null, data);
+        return ApiResponse.<T>builder()
+                .success(true)
+                .message(message)
+                .errorCode(null)
+                .data(data)
+                .build();
     }
 
     /**
@@ -51,7 +61,12 @@ public class ApiResponse<T> {
      * @return 성공 응답 객체
      */
     public static ApiResponse<Void> successMessage(String message) {
-        return new ApiResponse<>(true, message, null, null);
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message(message)
+                .errorCode(null)
+                .data(null)
+                .build();
     }
     
     /**
@@ -60,7 +75,12 @@ public class ApiResponse<T> {
      * @return 오류 응답 객체
      */
     public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null, null);
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .errorCode(null)
+                .data(null)
+                .build();
     }
     
     /**
@@ -69,7 +89,12 @@ public class ApiResponse<T> {
      * @param message   오류 메시지
      */
     public static <T> ApiResponse<T> error(String errorCode, String message) {
-        return new ApiResponse<>(false, message, errorCode, null);
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .errorCode(errorCode)
+                .data(null)
+                .build();
     }
     
     /**
@@ -78,6 +103,11 @@ public class ApiResponse<T> {
      * @param data 오류 데이터
      */
     public static <T> ApiResponse<T> error(String message, T data) {
-        return new ApiResponse<>(false, message, null, data);
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .errorCode(null)
+                .data(data)
+                .build();
     }
 }

@@ -2,6 +2,7 @@ package com.coincommunity.backend.repository;
 
 import com.coincommunity.backend.entity.Post;
 import com.coincommunity.backend.entity.PostCategory;
+import com.coincommunity.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +17,27 @@ import java.util.List;
  */
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+    
+    /**
+     * 모든 게시글을 최신순으로 조회
+     */
+    Page<Post> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    
+    /**
+     * 카테고리별 게시글을 최신순으로 조회
+     */
+    Page<Post> findByCategoryOrderByCreatedAtDesc(PostCategory category, Pageable pageable);
+    
+    /**
+     * 특정 사용자가 작성한 게시글을 최신순으로 조회
+     */
+    Page<Post> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+    
+    /**
+     * 제목 또는 내용에 키워드를 포함하는 게시글을 검색 (대소문자 무시, 최신순)
+     */
+    Page<Post> findByTitleContainingIgnoreCaseOrContentContainingIgnoreCaseOrderByCreatedAtDesc(
+            String titleKeyword, String contentKeyword, Pageable pageable);
     
     /**
      * 카테고리별 게시글을 페이징하여 조회합니다.
@@ -59,6 +81,4 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("SELECT p FROM Post p WHERE p.user.id = :userId ORDER BY p.createdAt DESC")
     List<Post> findByUserId(@Param("userId") Long userId);
-
-    boolean existsBySourceUrl(String sourceUrl);
 }
