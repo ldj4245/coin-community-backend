@@ -102,11 +102,9 @@ public class UserDto {
         private String username;
         private String email;
         private String nickname;
-        private String avatarUrl;
+        private String profileImageUrl;
         private UserRole role;
         private UserStatus status;
-        private Integer activityLevel;
-        private Integer point;
         
         /**
          * User 엔티티로부터 UserResponse DTO를 생성합니다.
@@ -117,11 +115,9 @@ public class UserDto {
                     .username(user.getUsername())
                     .email(user.getEmail())
                     .nickname(user.getNickname())
-                    .avatarUrl(user.getAvatarUrl())
+                    .profileImageUrl(user.getProfileImageUrl())
                     .role(user.getRole())
                     .status(user.getStatus())
-                    .activityLevel(user.getActivityLevel())
-                    .point(user.getPoint())
                     .build();
         }
     }
@@ -135,7 +131,7 @@ public class UserDto {
     @AllArgsConstructor
     public static class UpdateProfileRequest {
         private String nickname;
-        private String avatarUrl;
+        private String profileImageUrl;
     }
     
     /**
@@ -181,11 +177,9 @@ public class UserDto {
         private String username;
         private String email;
         private String nickname;
-        private String avatarUrl;
+        private String profileImageUrl;
         private UserRole role;
         private UserStatus status;
-        private Integer activityLevel;
-        private Integer point;
         
         /**
          * User 엔티티로부터 ProfileResponse DTO를 생성합니다.
@@ -196,11 +190,9 @@ public class UserDto {
                     .username(user.getUsername())
                     .email(user.getEmail())
                     .nickname(user.getNickname())
-                    .avatarUrl(user.getAvatarUrl())
+                    .profileImageUrl(user.getProfileImageUrl())
                     .role(user.getRole())
                     .status(user.getStatus())
-                    .activityLevel(user.getActivityLevel())
-                    .point(user.getPoint())
                     .build();
         }
     }
@@ -272,9 +264,8 @@ public class UserDto {
         private Long id;
         private String username;
         private String nickname;
-        private String avatarUrl;
+        private String profileImageUrl;
         private UserRole role;
-        private Integer activityLevel;
         
         /**
          * User 엔티티로부터 Summary DTO를 생성합니다.
@@ -284,9 +275,8 @@ public class UserDto {
                     .id(user.getId())
                     .username(user.getUsername())
                     .nickname(user.getNickname())
-                    .avatarUrl(user.getAvatarUrl())
+                    .profileImageUrl(user.getProfileImageUrl())
                     .role(user.getRole())
-                    .activityLevel(user.getActivityLevel())
                     .build();
         }
     }

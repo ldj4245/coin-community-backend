@@ -92,17 +92,7 @@ public class PostService {
             throw new IllegalArgumentException("해당 게시글에 대한 수정 권한이 없습니다.");
         }
         
-        // 이미지 URL JSON 변환
-        String imageUrlsJson = "[]";
-        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
-            try {
-                imageUrlsJson = objectMapper.writeValueAsString(request.getImageUrls());
-            } catch (JsonProcessingException e) {
-                imageUrlsJson = "[]";
-            }
-        }
-        
-        post.update(request.getTitle(), request.getContent(), imageUrlsJson);
+        post.update(request.getTitle(), request.getContent());
         Post updatedPost = postRepository.save(post);
         
         return PostDto.PostResponse.from(updatedPost);

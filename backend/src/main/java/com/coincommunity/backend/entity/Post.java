@@ -33,21 +33,12 @@ public class Post extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private PostCategory category;
     
-    @Column
-    private String source; // 뉴스 출처
-
-    @Column
-    private String sourceUrl; // 뉴스 원문 URL
-    
     @Builder.Default
     private Integer viewCount = 0;
     @Builder.Default
     private Integer likeCount = 0;
     @Builder.Default
     private Integer commentCount = 0;
-    
-    @Column(columnDefinition = "TEXT")
-    private String imageUrls; // JSON 형태로 저장
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -85,9 +76,8 @@ public class Post extends BaseTimeEntity {
     /**
      * 게시글 내용을 업데이트합니다.
      */
-    public void update(String title, String content, String imageUrls) {
+    public void update(String title, String content) {
         this.title = title;
         this.content = content;
-        this.imageUrls = imageUrls;
     }
 }

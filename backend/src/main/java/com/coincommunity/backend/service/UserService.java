@@ -189,15 +189,4 @@ public class UserService {
         user.setStatus(status);
         userRepository.save(user);
     }
-    
-    /**
-     * 사용자 포인트 추가
-     */
-    @Transactional
-    public UserDto.ProfileResponse addPoints(Long userId, int points) {
-        User user = findById(userId);
-        user.addPoints(points);
-        User updatedUser = userRepository.save(user);
-        return UserDto.ProfileResponse.from(updatedUser);
-    }
 }

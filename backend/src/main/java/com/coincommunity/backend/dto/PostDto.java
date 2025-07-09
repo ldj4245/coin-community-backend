@@ -42,8 +42,6 @@ public class PostDto {
         @NotNull(message = "카테고리는 필수 입력값입니다")
         private PostCategory category;
         
-        private List<String> imageUrls;
-        
         /**
          * CreateRequest DTO로부터 Post 엔티티를 생성합니다.
          */
@@ -53,16 +51,6 @@ public class PostDto {
             post.setContent(this.content);
             post.setCategory(this.category);
             post.setUser(user);
-            
-            if (imageUrls != null && !imageUrls.isEmpty()) {
-                try {
-                    post.setImageUrls(objectMapper.writeValueAsString(imageUrls));
-                } catch (JsonProcessingException e) {
-                    post.setImageUrls("[]");
-                }
-            } else {
-                post.setImageUrls("[]");
-            }
             
             return post;
         }
@@ -81,8 +69,6 @@ public class PostDto {
         
         @NotBlank(message = "내용은 필수 입력값입니다")
         private String content;
-        
-        private List<String> imageUrls;
     }
     
     /**
@@ -101,7 +87,6 @@ public class PostDto {
         private Integer viewCount;
         private Integer likeCount;
         private Integer commentCount;
-        private List<String> imageUrls;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
         private UserDto.UserResponse user;
@@ -120,7 +105,6 @@ public class PostDto {
                     .viewCount(post.getViewCount())
                     .likeCount(post.getLikeCount())
                     .commentCount(post.getCommentCount())
-                    .imageUrls(parseImageUrls(post.getImageUrls()))
                     .createdAt(post.getCreatedAt())
                     .updatedAt(post.getUpdatedAt())
                     .user(UserDto.UserResponse.from(post.getUser()))
@@ -142,24 +126,6 @@ public class PostDto {
          */
         public void setLiked(boolean liked) {
             this.liked = liked;
-        }
-        
-        /**
-         * 이미지 URL JSON 문자열을 List<String>으로 변환합니다.
-         */
-        private static List<String> parseImageUrls(String imageUrlsJson) {
-            if (imageUrlsJson == null || imageUrlsJson.isEmpty()) {
-                return new ArrayList<>();
-            }
-            
-            try {
-                return objectMapper.readValue(
-                    imageUrlsJson,
-                    new TypeReference<List<String>>() {}
-                );
-            } catch (JsonProcessingException e) {
-                return new ArrayList<>();
-            }
         }
     }
     
@@ -213,7 +179,6 @@ public class PostDto {
                 postResponse.getViewCount(),
                 postResponse.getLikeCount(),
                 postResponse.getCommentCount(),
-                postResponse.getImageUrls(),
                 postResponse.getCreatedAt(),
                 postResponse.getUpdatedAt(),
                 postResponse.getUser(),
